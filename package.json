@@ -1,17 +1,12 @@
 {
   "dependencies": {
     "express": "^5.1.0",
-    "node-cron": "^3.0.3",
-    "node-fetch": "^3.3.2",
-    "sqlite3": "^5.0.2",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2"
+    "sqlite3": "^5.0.2"
   },
   "name": "app-caminhada",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js"
   },
   "keywords": [],
