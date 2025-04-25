@@ -76,7 +76,7 @@ app.get('/api/historico', (req, res) => {
 
 // Rota para carregar index.html direto na /
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
