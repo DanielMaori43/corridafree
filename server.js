@@ -1,4 +1,3 @@
-// server.js
 
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
@@ -8,10 +7,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'caminhadas.db');
 
-// Middleware para parsear JSON
 app.use(express.json());
 
-// Abrir (ou criar) o banco de dados
 const db = new sqlite3.Database(DB_PATH, err => {
   if (err) {
     console.error('Erro ao abrir o banco de dados', err);
@@ -19,7 +16,6 @@ const db = new sqlite3.Database(DB_PATH, err => {
   }
   console.log('Conectado ao SQLite em', DB_PATH);
 
-  // Criar tabela de histórico se não existir
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS historico_caminhada (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,8 +34,8 @@ const db = new sqlite3.Database(DB_PATH, err => {
   });
 });
 
-// Endpoint para salvar uma nova caminhada
-app.post('/api/salvar-caminhada', (req, res) => {
+// Endpoint ajustado para salvar uma nova caminhada
+app.post('/api/historico', (req, res) => {
   const { tempo, distancia, ritmo } = req.body;
   const insertSQL = `
     INSERT INTO historico_caminhada (tempo, distancia, ritmo)
@@ -57,7 +53,6 @@ app.post('/api/salvar-caminhada', (req, res) => {
   });
 });
 
-// Endpoint para listar todo o histórico
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
@@ -73,7 +68,6 @@ app.get('/api/historico', (req, res) => {
   });
 });
 
-// Iniciar o servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
