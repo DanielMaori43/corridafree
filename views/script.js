@@ -6,10 +6,8 @@ const pararCaminhadaBotao = document.getElementById('parar-caminhada');
 const mapaContainer = document.getElementById('mapa-container');
 const ritmoAtualElement = document.getElementById('ritmo-atual');
 const feedbackElement = document.getElementById('feedback-mensagem');
-const audioIcon = document.getElementById('audio-icon');
 const toggleAudioButton = document.getElementById('toggle-audio');
 
-let watchId;
 let startTime;
 let previousPosition = null;
 let totalDistance = 0;
@@ -38,7 +36,6 @@ function falarMensagem(mensagem) {
     }
 }
 
-// ✅ Função corrigida para iniciar a caminhada
 function iniciarCaminhada() {
     console.log("Iniciando caminhada...");
 
@@ -73,23 +70,13 @@ function iniciarCaminhada() {
 }
 
 function atualizarGrafico(timestamp) {
-    // Adiciona o total percorrido até agora
     distanceData.push(totalDistance);
-    // Opcional: armazena também o tempo (timestamp) se quiser usar no eixo X
     timeData.push(timestamp);
-
-    // Atualiza os labels (número de leituras) e os dados do dataset
     meuGrafico.data.labels = Array.from({ length: distanceData.length }, (_, i) => i + 1);
     meuGrafico.data.datasets[0].data = distanceData;
-
-    // Re-renderiza o gráfico
     meuGrafico.update();
 }
 
-
-
-
-// Função para parar a caminhada e salvar no backend
 function pararCaminhada() {
     if (watchId) {
         navigator.geolocation.clearWatch(watchId);
@@ -125,7 +112,6 @@ function pararCaminhada() {
     }
 }
 
-// Função para atualizar a localização
 function atualizarLocalizacao(position) {
     const { latitude, longitude } = position.coords;
     const timestamp = position.timestamp;
@@ -234,7 +220,6 @@ function inicializarMapa(lat, lon) {
 }
 
 function desenharRotaNoMapa() {
-    // Verifica se há coordenadas válidas
     if (mapa && pathCoordinates.length > 1) {
         if (polyline) mapa.removeLayer(polyline);
         polyline = L.polyline(pathCoordinates, { color: 'blue' }).addTo(mapa);
@@ -280,14 +265,16 @@ document.getElementById('limpar-historico').addEventListener('click', () => {
         });
 });
 
+// ✅ Botão de som corrigido
 toggleAudioButton.addEventListener('click', () => {
     audioAtivado = !audioAtivado;
-    audioIcon.textContent = audioAtivado ? '🔊' : '🔇';
+    toggleAudioButton.textContent = audioAtivado ? '🔊' : '🔇';
 });
 
 iniciarCaminhadaBotao.addEventListener('click', () => {
     console.log("Botão Iniciar Caminhada foi clicado!");
     iniciarCaminhada();
 });
+
 pararCaminhadaBotao.addEventListener('click', pararCaminhada);
 window.addEventListener('DOMContentLoaded', carregarHistorico);
