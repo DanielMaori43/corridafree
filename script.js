@@ -38,8 +38,10 @@ function falarMensagem(mensagem) {
     }
 }
 
-// Função para iniciar a caminhada
+// ✅ Função corrigida para iniciar a caminhada
 function iniciarCaminhada() {
+    console.log("Iniciando caminhada...");
+
     startTime = Date.now();
     totalDistance = 0;
     previousPosition = null;
@@ -70,6 +72,23 @@ function iniciarCaminhada() {
     pararCaminhadaBotao.disabled = false;
 }
 
+function atualizarGrafico(timestamp) {
+    // Adiciona o total percorrido até agora
+    distanceData.push(totalDistance);
+    // Opcional: armazena também o tempo (timestamp) se quiser usar no eixo X
+    timeData.push(timestamp);
+
+    // Atualiza os labels (número de leituras) e os dados do dataset
+    meuGrafico.data.labels = Array.from({ length: distanceData.length }, (_, i) => i + 1);
+    meuGrafico.data.datasets[0].data = distanceData;
+
+    // Re-renderiza o gráfico
+    meuGrafico.update();
+}
+
+
+
+
 // Função para parar a caminhada e salvar no backend
 function pararCaminhada() {
     if (watchId) {
@@ -82,7 +101,6 @@ function pararCaminhada() {
         const distancia = totalDistance.toFixed(2);
         const ritmo = ritmoAtualElement.textContent;
 
-        // Enviar para o servidor
         fetch('/api/historico', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -95,10 +113,10 @@ function pararCaminhada() {
         })
         .then(res => {
             if (res.ok) {
-                console.log("Histórico salvo com sucesso!");
+                feedbackElement.textContent = "✅ Caminhada salva no histórico!";
                 carregarHistorico();
             } else {
-                console.error("Erro ao salvar no backend");
+                feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
             }
         });
 
@@ -107,7 +125,7 @@ function pararCaminhada() {
     }
 }
 
-// Localização
+// Função para atualizar a localização
 function atualizarLocalizacao(position) {
     const { latitude, longitude } = position.coords;
     const timestamp = position.timestamp;
@@ -233,7 +251,6 @@ function atualizarMapaComNovaCoordenada(lat, lon) {
     }
 }
 
-// Atualizar histórico
 function carregarHistorico() {
     fetch('/api/historico')
         .then(res => res.json())
@@ -243,22 +260,33 @@ function carregarHistorico() {
             data.forEach(c => {
                 const item = document.createElement('li');
                 item.innerHTML = `
-                    <strong>Data:</strong> ${new Date(c.data).toLocaleString()}<br>
-                    <strong>Distância:</strong> ${c.distancia} km<br>
-                    <strong>Tempo:</strong> ${c.tempo}<br>
-                    <strong>Ritmo:</strong> ${c.ritmo || 'N/A'}
+                    <span style="color: #03dac6;">📅 ${new Date(c.data).toLocaleString()}</span><br>
+                    🚶 <strong>${c.distancia} km</strong> | ⏱️ ${c.tempo} | 🏃 Ritmo: ${c.ritmo || 'N/A'}
                 `;
                 lista.appendChild(item);
             });
         })
-        .catch(err => console.error("Erro ao carregar histórico:", err));
+        .catch(err => {
+            console.error("Erro ao carregar histórico:", err);
+        });
 }
+
+document.getElementById('limpar-historico').addEventListener('click', () => {
+    fetch('/api/historico', { method: 'DELETE' })
+        .then(() => {
+            feedbackElement.textContent = "🧹 Histórico limpo com sucesso!";
+            carregarHistorico();
+        });
+});
 
 toggleAudioButton.addEventListener('click', () => {
     audioAtivado = !audioAtivado;
     audioIcon.textContent = audioAtivado ? '🔊' : '🔇';
 });
 
-iniciarCaminhadaBotao.addEventListener('click', iniciarCaminhada);
+iniciarCaminhadaBotao.addEventListener('click', () => {
+    console.log("Botão Iniciar Caminhada foi clicado!");
+    iniciarCaminhada();
+});
 pararCaminhadaBotao.addEventListener('click', pararCaminhada);
 window.addEventListener('DOMContentLoaded', carregarHistorico);
