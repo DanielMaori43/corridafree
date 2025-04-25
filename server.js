@@ -36,23 +36,24 @@ const db = new sqlite3.Database(DB_PATH, err => {
 
 // Endpoint ajustado para salvar uma nova caminhada
 app.post('/api/historico', (req, res) => {
-  const { tempo, distancia, ritmo } = req.body;
+  const { data, tempo, distancia, ritmo } = req.body;
+
   const insertSQL = `
-    INSERT INTO historico_caminhada (tempo, distancia, ritmo)
-    VALUES (?, ?, ?)
+    INSERT INTO historico_caminhada (data_inicio, tempo, distancia, ritmo)
+    VALUES (?, ?, ?, ?)
   `;
-  db.run(insertSQL, [tempo, distancia, ritmo], function(err) {
+
+  db.run(insertSQL, [data, tempo, distancia, ritmo], function(err) {
     if (err) {
       console.error('Erro ao salvar caminhada:', err);
       return res.status(500).json({ error: 'Falha ao salvar caminhada.' });
     }
-    res.status(201).json({ 
-      message: 'Caminhada salva com sucesso!', 
-      id: this.lastID 
+    res.status(201).json({
+      message: 'Caminhada salva com sucesso!',
+      id: this.lastID
     });
   });
 });
-
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
