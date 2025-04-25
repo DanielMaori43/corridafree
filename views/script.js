@@ -28,6 +28,32 @@ let ritmoDiminuiuAvisado = false;
 const LIMIAR_VELOCIDADE = 0.1;
 const TEMPO_LIMITE_PARADO = 120000;
 
+//Função para n para a msg quando a tela estiver travada
+if ("Notification" in window) {
+    if (Notification.permission !== "granted") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Permissão para notificações concedida!");
+            } else {
+                console.log("Permissão para notificações negada.");
+            }
+        });
+    }
+}
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .then(registration => {
+        console.log('Service Worker registrado com sucesso:', registration);
+      })
+      .catch(error => {
+        console.log('Falha ao registrar Service Worker:', error);
+      });
+  });
+}
+
+
+
 // Função para falar mensagens com o SpeechSynthesis
 function falarMensagem(mensagem) {
     if ('speechSynthesis' in window && audioAtivado) {
