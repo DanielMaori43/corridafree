@@ -9,7 +9,7 @@ const DB_PATH = path.join(__dirname, 'caminhadas.db');
 app.use(express.json());
 
 app.get('/corridafree', (req, res) => {
-  res.send('Página Corrida Free');
+  res.sendFile(path.join(__dirname,'index.html'));
 });
 
 // Conexão com banco e criação da tabela
