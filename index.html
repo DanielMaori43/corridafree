@@ -17,19 +17,7 @@
       align-items: center;
     }
 
-    h1 { color: #bb86fc; }
-    button {
-      padding: 12px 24px;
-      font-size: 16px;
-      margin: 5px;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-
-    #iniciar-caminhada { background-color: #00c853; color: white; }
-    #parar-caminhada { background-color: #d32f2f; color: white; }
-    #limpar-historico { background-color: #ff9800; color: white; }
+    h1 { color: #bb86fc; font-size: 1.8em; margin-bottom: 10px; }
 
     #grafico-container, #mapa-container, #historico-caminhadas {
       background-color: #1e1e1e;
@@ -47,33 +35,82 @@
     #info-tempo-distancia {
       display: flex;
       justify-content: space-around;
-      margin: 10px 0;
+      align-items: center;
+      margin: 20px 0;
+      padding: 10px;
+      background-color: #1e1e1e;
+      border-radius: 8px;
+      width: 90%;
+      max-width: 600px;
+    }
+
+    .info-item {
+      text-align: center;
+      flex: 1;
+    }
+
+    .info-item label {
+      display: block;
+      font-size: 1em;
+      color: #9e9e9e;
+      margin-bottom: 5px;
     }
 
     .info-item span {
-      display: block;
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-
-    #historico-caminhadas ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      max-height: 200px;
-      overflow-y: auto;
-    }
-
-    #historico-caminhadas li {
-      border-bottom: 1px solid #373737;
-      padding: 10px 5px;
-    }
-
-    #feedback-mensagem {
-      margin: 10px 0;
+      font-size: 1.8em;
       font-weight: bold;
       color: #03dac6;
     }
+
+    #botoes-caminhada {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Estilo dos botões de texto */
+    #iniciar-caminhada, #parar-caminhada {
+      padding: 8px 16px;
+      font-size: 1em;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    #iniciar-caminhada {
+      background-color: #00c853;
+      color: white;
+    }
+
+    #parar-caminhada {
+      background-color: #d32f2f;
+      color: white;
+    }
+
+    #iniciar-caminhada:hover, #parar-caminhada:hover {
+      transform: scale(1.05);
+    }
+
+    /* Botões de ícones */
+    #toggle-audio, #limpar-historico {
+      background: none;
+      border: none;
+      padding: 6px;
+      cursor: pointer;
+      font-size: 1.4em;
+      color: #9e9e9e;
+      transition: color 0.2s, transform 0.2s;
+    }
+
+    #toggle-audio:hover, #limpar-historico:hover {
+      color: #03dac6;
+      transform: scale(1.2);
+    }
+
   </style>
 </head>
 <body>
@@ -91,12 +128,11 @@
 
   <div id="feedback-mensagem"></div>
 
-  <div>
+  <div id="botoes-caminhada">
     <button id="iniciar-caminhada">Iniciar Caminhada</button>
     <button id="parar-caminhada" disabled>Parar Caminhada</button>
-    <button id="limpar-historico">Limpar Histórico</button>
-    <button id="toggle-audio"><span id="audio-icon">🔊</span></button>
-
+    <button id="toggle-audio" title="Ativar/Desativar som">🔊</button>
+    <button id="limpar-historico" title="Limpar Histórico">🗑️</button>
   </div>
 
   <div id="historico-caminhadas">
