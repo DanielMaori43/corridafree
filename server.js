@@ -8,8 +8,7 @@ const DB_PATH = path.join(__dirname, 'caminhadas.db');
 
 app.use(express.json());
 
-// Servir arquivos estáticos da pasta "frontend"
-app.use(express.static(path.join(__dirname, 'frontend')));
+
 
 // Conexão com banco e criação da tabela
 const db = new sqlite3.Database(DB_PATH, err => {
@@ -74,10 +73,7 @@ app.get('/api/historico', (req, res) => {
   });
 });
 
-// Rota para carregar index.html direto na /
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
+
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
