@@ -6,11 +6,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'caminhadas.db');
 
-// Serve arquivos estáticos da pasta 'public'
-app.use(express.static(path.join(__dirname, 'public')));
-
 app.use(express.json());
 
+// Servir arquivos estáticos da pasta "frontend"
+app.use(express.static(path.join(__dirname, 'frontend')));
+
+// Conexão com banco e criação da tabela
 const db = new sqlite3.Database(DB_PATH, err => {
   if (err) {
     console.error('Erro ao abrir o banco de dados', err);
@@ -36,7 +37,7 @@ const db = new sqlite3.Database(DB_PATH, err => {
   });
 });
 
-// Endpoint ajustado para salvar uma nova caminhada
+// Rota API - inserir
 app.post('/api/historico', (req, res) => {
   const { data, tempo, distancia, ritmo } = req.body;
 
@@ -57,6 +58,7 @@ app.post('/api/historico', (req, res) => {
   });
 });
 
+// Rota API - buscar
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
@@ -70,6 +72,11 @@ app.get('/api/historico', (req, res) => {
     }
     res.json(rows);
   });
+});
+
+// Rota para carregar index.html direto na /
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
 });
 
 app.listen(PORT, () => {
