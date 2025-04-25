@@ -1,4 +1,3 @@
-
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -6,6 +5,9 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'caminhadas.db');
+
+// Serve arquivos estáticos da pasta 'public'
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.use(express.json());
 
@@ -54,6 +56,7 @@ app.post('/api/historico', (req, res) => {
     });
   });
 });
+
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
