@@ -21,51 +21,25 @@ let meuGrafico;
 let mapa;
 let polyline;
 let primeiraCoordenadaRecebida = false;
-let ritmoInicial = null; // Para armazenar o ritmo inicial
+let ritmoInicial = null;
 let tempoParado = 0;
 let paradoDesde = null;
-let audioAtivado = true; // Variável para controlar o estado do áudio
-let ritmoInicialRegistrado = false; // Nova flag para controlar o registro do ritmo inicial
-let ritmoDiminuiuAvisado = false; // Variável de controle para o aviso de ritmo diminuído
-const LIMIAR_VELOCIDADE = 0.1; // km/h
-const TEMPO_LIMITE_PARADO = 120000; // 2 minutos em milissegundos
-
-
-
-// Função para inserir uma nova caminhada
-function salvarHistorico(distancia, tempo, ritmo) {
-    const data = new Date().toISOString(); // Data no formato ISO
-    const sql = 'INSERT INTO historico_caminhada (data, distancia, tempo, ritmo) VALUES (?, ?, ?, ?)';
-    db.run(sql, [data, distancia, tempo, ritmo], (err) => {
-        if (err) {
-            console.error('Erro ao salvar histórico:', err);
-            return;
-        }
-        console.log('Caminhada salva no histórico!');
-    });
-}
-
-// Função para depuração
-function debugLog(message) {
-    console.log(message);
-}
+let audioAtivado = true;
+let ritmoInicialRegistrado = false;
+let ritmoDiminuiuAvisado = false;
+const LIMIAR_VELOCIDADE = 0.1;
+const TEMPO_LIMITE_PARADO = 120000;
 
 // Função para falar mensagens com o SpeechSynthesis
 function falarMensagem(mensagem) {
     if ('speechSynthesis' in window && audioAtivado) {
         const utterance = new SpeechSynthesisUtterance(mensagem);
         window.speechSynthesis.speak(utterance);
-    } else if (!('speechSynthesis' in window)) {
-        console.log("API de Text-to-Speech não suportada.");
-    } else {
-        console.log("Avisos de voz estão desativados.");
     }
 }
 
 // Função para iniciar a caminhada
 function iniciarCaminhada() {
-    console.log("Iniciar caminhada clicado!");
-    
     startTime = Date.now();
     totalDistance = 0;
     previousPosition = null;
@@ -78,8 +52,8 @@ function iniciarCaminhada() {
     feedbackElement.textContent = '';
     ritmoInicial = null;
     paradoDesde = null;
-    ritmoInicialRegistrado = false; // Resetar a flag ao iniciar uma nova caminhada
-    ritmoDiminuiuAvisado = false; // Resetar a flag ao iniciar uma nova caminhada
+    ritmoInicialRegistrado = false;
+    ritmoDiminuiuAvisado = false;
 
     if (audioAtivado) falarMensagem("Caminhada iniciada!");
     inicializarGrafico();
@@ -96,26 +70,49 @@ function iniciarCaminhada() {
     pararCaminhadaBotao.disabled = false;
 }
 
-// Função para parar a caminhada
+// Função para parar a caminhada e salvar no backend
 function pararCaminhada() {
     if (watchId) {
         navigator.geolocation.clearWatch(watchId);
         clearInterval(timerInterval);
         iniciarCaminhadaBotao.disabled = false;
         pararCaminhadaBotao.disabled = true;
-        if (audioAtivado) falarMensagem(`Caminhada finalizada. Distância total percorrida: ${totalDistance.toFixed(2)} quilômetros.`);
-        console.log("Caminhada finalizada. Distância total:", totalDistance.toFixed(2) + " km");
+
+        const tempo = tempoDecorridoElement.textContent;
+        const distancia = totalDistance.toFixed(2);
+        const ritmo = ritmoAtualElement.textContent;
+
+        // Enviar para o servidor
+        fetch('/api/historico', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                data: new Date().toISOString(),
+                distancia,
+                tempo,
+                ritmo
+            })
+        })
+        .then(res => {
+            if (res.ok) {
+                console.log("Histórico salvo com sucesso!");
+                carregarHistorico();
+            } else {
+                console.error("Erro ao salvar no backend");
+            }
+        });
+
+        if (audioAtivado) falarMensagem(`Caminhada finalizada. Distância total percorrida: ${distancia} quilômetros.`);
         desenharRotaNoMapa();
     }
 }
 
-// Função para atualizar a localização
+// Localização
 function atualizarLocalizacao(position) {
     const { latitude, longitude } = position.coords;
     const timestamp = position.timestamp;
 
     pathCoordinates.push([latitude, longitude]);
-    console.log("Coordenadas adicionadas:", latitude, longitude, "Tamanho do Path:", pathCoordinates.length);
 
     if (!primeiraCoordenadaRecebida && mapa) {
         mapa.setView([latitude, longitude], 15);
@@ -124,7 +121,7 @@ function atualizarLocalizacao(position) {
 
     let velocidadeAtual = 0;
     if (position.coords.speed !== null) {
-        velocidadeAtual = position.coords.speed * 3.6; // Converter m/s para km/h
+        velocidadeAtual = position.coords.speed * 3.6;
     }
 
     if (velocidadeAtual < LIMIAR_VELOCIDADE) {
@@ -132,7 +129,7 @@ function atualizarLocalizacao(position) {
             paradoDesde = Date.now();
         } else if (Date.now() - paradoDesde > TEMPO_LIMITE_PARADO) {
             falarMensagem("Você está parado há algum tempo. Tudo bem?");
-            paradoDesde = null; // Evitar repetição constante do alerta
+            paradoDesde = null;
         }
     } else {
         paradoDesde = null;
@@ -141,22 +138,17 @@ function atualizarLocalizacao(position) {
     if (previousPosition) {
         const distance = calcularDistancia(previousPosition.latitude, previousPosition.longitude, latitude, longitude);
         totalDistance += distance;
-        console.log("Distância Incrementada:", distance, "Distância Total:", totalDistance);
 
-        const currentTime = Date.now();
-        const elapsedTimeInSeconds = Math.floor((currentTime - startTime) / 1000);
-
-        let ritmoAtual = '0:00';
+        const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+        let ritmo = '0:00';
         if (totalDistance > 0) {
-            const ritmoEmSegundosPorKm = elapsedTimeInSeconds / totalDistance;
-            const minutos = Math.floor(ritmoEmSegundosPorKm / 60);
-            const segundos = Math.floor(ritmoEmSegundosPorKm % 60);
-            ritmoAtual = `${minutos}:${String(segundos).padStart(2, '0')}`;
+            const segundosPorKm = elapsedTime / totalDistance;
+            const minutos = Math.floor(segundosPorKm / 60);
+            const segundos = Math.floor(segundosPorKm % 60);
+            ritmo = `${minutos}:${String(segundos).padStart(2, '0')}`;
         }
 
-        if (ritmoAtualElement) {
-            ritmoAtualElement.textContent = ritmoAtual;
-        }
+        ritmoAtualElement.textContent = ritmo;
     }
 
     previousPosition = { latitude, longitude };
@@ -166,47 +158,33 @@ function atualizarLocalizacao(position) {
     atualizarMapaComNovaCoordenada(latitude, longitude);
 }
 
-// Função para tratar erros na localização
 function tratarErro(error) {
     console.warn('Erro ao obter localização:', error.message);
 }
 
-// Função para atualizar o tempo
 function atualizarTempo() {
-    const currentTime = Date.now();
-    const elapsedTime = Math.floor((currentTime - startTime) / 1000);
-
-    const hours = Math.floor(elapsedTime / 3600);
-    const minutes = Math.floor((elapsedTime % 3600) / 60);
-    const seconds = elapsedTime % 60;
-
-    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    tempoDecorridoElement.textContent = formattedTime;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    tempoDecorridoElement.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// Função para calcular a distância entre duas coordenadas
 function calcularDistancia(lat1, lon1, lat2, lon2) {
-    const R = 6371; // Raio da Terra em km
+    const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
-    const a =
-        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const d = R * c; // Distância em km
-    return d;
+    return R * c;
 }
 
 function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
-// Função para inicializar o gráfico
 function inicializarGrafico() {
-    if (meuGrafico) {
-        meuGrafico.destroy();
-    }
+    if (meuGrafico) meuGrafico.destroy();
     meuGrafico = new Chart(graficoCanvas, {
         type: 'line',
         data: {
@@ -222,107 +200,65 @@ function inicializarGrafico() {
         },
         options: {
             scales: {
-                x: {
-                    type: 'linear',
-                    title: {
-                        display: true,
-                        text: 'Número de Leituras',
-                        color: '#e0e0e0'
-                    },
-                    ticks: {
-                        color: '#9e9e9e',
-                        stepSize: 1
-                    },
-                    grid: {
-                        color: '#373737'
-                    }
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Distância (km)',
-                        color: '#e0e0e0'
-                    },
-                    ticks: {
-                        color: '#9e9e9e'
-                    },
-                    grid: {
-                        color: '#373737'
-                    }
-                }
+                x: { title: { display: true, text: 'Número de Leituras', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }},
+                y: { title: { display: true, text: 'Distância (km)', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }}
             },
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#e0e0e0'
-                    }
-                }
-            }
+            plugins: { legend: { labels: { color: '#e0e0e0' } } }
         }
     });
 }
 
-// Função para inicializar o mapa
-function inicializarMapa(latitude, longitude) {
-    mapa = L.map('mapa-container').setView([latitude, longitude], 15);
+function inicializarMapa(lat, lon) {
+    mapa = L.map('mapa-container').setView([lat, lon], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapa);
 }
 
-// Função para desenhar a rota no mapa
 function desenharRotaNoMapa() {
     if (mapa && pathCoordinates.length > 1) {
-        if (polyline) {
-            mapa.removeLayer(polyline);
-        }
+        if (polyline) mapa.removeLayer(polyline);
         polyline = L.polyline(pathCoordinates, { color: 'blue' }).addTo(mapa);
         mapa.fitBounds(polyline.getBounds());
     }
 }
 
-// Função para atualizar o mapa com nova coordenada
-function atualizarMapaComNovaCoordenada(latitude, longitude) {
+function atualizarMapaComNovaCoordenada(lat, lon) {
     if (mapa) {
         if (!polyline) {
-            polyline = L.polyline([latitude, longitude], { color: 'blue' }).addTo(mapa);
+            polyline = L.polyline([lat, lon], { color: 'blue' }).addTo(mapa);
         } else {
-            polyline.addLatLng([latitude, longitude]);
+            polyline.addLatLng([lat, lon]);
         }
     }
 }
 
-// Event listener para o botão de mudo/som
-toggleAudioButton.addEventListener('click', () => {
-    audioAtivado = !audioAtivado;
-    audioIcon.textContent = audioAtivado ? '🔊' : '🔇'; // Atualizar o ícone
-    console.log("Áudio ativado:", audioAtivado);
-});
+// Atualizar histórico
 function carregarHistorico() {
     fetch('/api/historico')
-        .then(response => response.json())
+        .then(res => res.json())
         .then(data => {
-            const historicoContainer = document.getElementById('historico-container');
-            historicoContainer.innerHTML = ''; // Limpar o conteúdo atual
-            data.forEach(caminhada => {
-                const caminhadaDiv = document.createElement('div');
-                caminhadaDiv.classList.add('caminhada');
-                caminhadaDiv.innerHTML = `
-                    <p><strong>Data:</strong> ${caminhada.data}</p>
-                    <p><strong>Distância:</strong> ${caminhada.distancia} km</p>
-                    <p><strong>Tempo:</strong> ${caminhada.tempo}</p>
-                    <p><strong>Ritmo:</strong> ${caminhada.ritmo || 'N/A'}</p>
+            const lista = document.getElementById('lista-historico');
+            lista.innerHTML = '';
+            data.forEach(c => {
+                const item = document.createElement('li');
+                item.innerHTML = `
+                    <strong>Data:</strong> ${new Date(c.data).toLocaleString()}<br>
+                    <strong>Distância:</strong> ${c.distancia} km<br>
+                    <strong>Tempo:</strong> ${c.tempo}<br>
+                    <strong>Ritmo:</strong> ${c.ritmo || 'N/A'}
                 `;
-                historicoContainer.appendChild(caminhadaDiv);
+                lista.appendChild(item);
             });
         })
-        .catch(err => {
-            console.error('Erro ao carregar histórico:', err);
-        });
+        .catch(err => console.error("Erro ao carregar histórico:", err));
 }
 
+toggleAudioButton.addEventListener('click', () => {
+    audioAtivado = !audioAtivado;
+    audioIcon.textContent = audioAtivado ? '🔊' : '🔇';
+});
 
-
-// Verifique se o botão está sendo referenciado corretamente
 iniciarCaminhadaBotao.addEventListener('click', iniciarCaminhada);
 pararCaminhadaBotao.addEventListener('click', pararCaminhada);
+window.addEventListener('DOMContentLoaded', carregarHistorico);
