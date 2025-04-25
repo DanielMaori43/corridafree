@@ -234,6 +234,7 @@ function inicializarMapa(lat, lon) {
 }
 
 function desenharRotaNoMapa() {
+    // Verifica se há coordenadas válidas
     if (mapa && pathCoordinates.length > 1) {
         if (polyline) mapa.removeLayer(polyline);
         polyline = L.polyline(pathCoordinates, { color: 'blue' }).addTo(mapa);
