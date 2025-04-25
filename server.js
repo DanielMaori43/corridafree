@@ -8,9 +8,13 @@ const DB_PATH = path.join(__dirname, 'caminhadas.db');
 
 app.use(express.json());
 
-app.get('/corridafree', (req, res) => {
-  res.sendFile(path.join(__dirname,'index.html'));
-});
+//app.get('/corridafree', (req, res) => {
+  //res.sendFile(path.join(__dirname,'index.html'));
+//});
+
+
+app.use(express.static(path.join(__dirname, 'views')));
+
 
 // Conexão com banco e criação da tabela
 const db = new sqlite3.Database(DB_PATH, err => {
