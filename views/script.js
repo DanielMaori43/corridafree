@@ -50,6 +50,39 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Verifica se o navegador suporta push notifications
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  navigator.serviceWorker.ready.then(function(registration) {
+    registration.pushManager.getSubscription().then(function(subscription) {
+      if (!subscription) {
+        // Inscreve novamente caso o usuário não tenha uma inscrição válida
+        registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlB64ToUint8Array(publicVapidKey)
+        }).then(function(newSubscription) {
+          // Envia a nova inscrição para o servidor
+          sendSubscriptionToServer(newSubscription);
+        });
+      } else {
+        // Envia a inscrição atual para o servidor
+        sendSubscriptionToServer(subscription);
+      }
+    });
+  });
+}
+
+function sendSubscriptionToServer(subscription) {
+  // Envia a inscrição para o seu servidor
+  fetch('/api/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(subscription),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+}
+
+
 // Função para exibir a notificação de caminhada
 function notificarCaminhada(quantidade) {
     if (Notification.permission === "granted") {
