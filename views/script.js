@@ -57,6 +57,46 @@ if ('serviceWorker' in navigator) {
             console.log('Erro ao registrar o Service Worker:', error);
         });
 }
+// Verificar permissão para notificações
+if ("Notification" in window) {
+    if (Notification.permission === "granted") {
+        iniciarRegistroServiceWorker();
+    } else {
+        Notification.requestPermission().then(function(permission) {
+            if (permission === "granted") {
+                console.log("Permissão para notificações concedida!");
+                iniciarRegistroServiceWorker();
+            } else {
+                console.log("Permissão para notificações negada.");
+            }
+        }).catch(function(err) {
+            console.error("Erro ao solicitar permissão para notificações:", err);
+        });
+    }
+}
+
+function iniciarRegistroServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/service-worker.js')
+            .then(function(registration) {
+                console.log('Service Worker registrado com sucesso:', registration);
+
+                registration.update();
+
+                registration.pushManager.getSubscription().then(function(subscription) {
+                    if (!subscription) {
+                        // Se o usuário não está inscrito, inscreva-o
+                        subscribeUser(registration);
+                    } else {
+                        console.log('Usuário já inscrito:', subscription);
+                    }
+                });
+
+            }).catch(function(error) {
+                console.log('Erro ao registrar o Service Worker:', error);
+            });
+    }
+}
 
 // Função para verificar e gerenciar a inscrição do push
 function verificarPushSubscription(registration) {
