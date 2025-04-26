@@ -28,7 +28,7 @@ let ritmoDiminuiuAvisado = false;
 const LIMIAR_VELOCIDADE = 0.1;
 const TEMPO_LIMITE_PARADO = 120000;
 
-//Função para n para a msg quando a tela estiver travada
+// Função para não parar a mensagem quando a tela estiver travada
 if ("Notification" in window) {
     if (Notification.permission !== "granted") {
         Notification.requestPermission().then(permission => {
@@ -40,90 +40,67 @@ if ("Notification" in window) {
         });
     }
 }
+
+// Registro do Service Worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js')
-    .then(function(registration) {
-      console.log('Service Worker registrado com sucesso:', registration);
-      
-      // Tente atualizar o service worker sempre que ele for registrado
-      registration.update();
+    navigator.serviceWorker.register('/service-worker.js')
+        .then(function (registration) {
+            console.log('Service Worker registrado com sucesso:', registration);
 
-      // Verificar a inscrição do push
-      registration.pushManager.getSubscription().then(function(subscription) {
-        if (!subscription) {
-          // Se o usuário não está inscrito, inscreva-o novamente
-          subscribeUser(registration);
-        } else {
-          console.log('Usuário já inscrito:', subscription);
-        }
-      });
+            // Tente atualizar o service worker sempre que ele for registrado
+            registration.update();
 
-    }).catch(function(error) {
-      console.log('Erro ao registrar o Service Worker:', error);
-    });
-}
-
-function subscribeUser(registration) {
-  registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlB64ToUint8Array(publicVapidKey)
-  }).then(function(subscription) {
-    console.log('Usuário inscrito:', subscription);
-    // Enviar a inscrição para o servidor
-    sendSubscriptionToServer(subscription);
-  }).catch(function(err) {
-    console.log('Erro ao inscrever o usuário:', err);
-  });
-}
-
-function sendSubscriptionToServer(subscription) {
-  fetch('/api/subscribe', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(subscription)
-  })
-  .then(response => response.json())
-  .then(data => {
-    console.log('Inscrição enviada para o servidor:', data);
-  })
-  .catch(error => console.error('Erro ao enviar a inscrição para o servidor:', error));
-}
-
-
-// Verifica se o navegador suporta push notifications
-if ('serviceWorker' in navigator && 'PushManager' in window) {
-  navigator.serviceWorker.ready.then(function(registration) {
-    registration.pushManager.getSubscription().then(function(subscription) {
-      if (!subscription) {
-        // Inscreve novamente caso o usuário não tenha uma inscrição válida
-        registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlB64ToUint8Array(publicVapidKey)
-        }).then(function(newSubscription) {
-          // Envia a nova inscrição para o servidor
-          sendSubscriptionToServer(newSubscription);
+            // Verificar inscrição do push
+            verificarPushSubscription(registration);
+        })
+        .catch(function (error) {
+            console.log('Erro ao registrar o Service Worker:', error);
         });
-      } else {
-        // Envia a inscrição atual para o servidor
-        sendSubscriptionToServer(subscription);
-      }
+}
+
+// Função para verificar e gerenciar a inscrição do push
+function verificarPushSubscription(registration) {
+    registration.pushManager.getSubscription().then(function (subscription) {
+        if (!subscription) {
+            console.log('Usuário não está inscrito, inscrevendo...');
+            subscribeUser(registration);
+        } else {
+            console.log('Usuário já inscrito:', subscription);
+            sendSubscriptionToServer(subscription); // Enviar a inscrição atual para o servidor
+        }
     });
-  });
 }
 
+// Função para se inscrever em Push Notifications
+function subscribeUser(registration) {
+    registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlB64ToUint8Array(publicVapidKey)
+    })
+        .then(function (subscription) {
+            console.log('Usuário inscrito:', subscription);
+            sendSubscriptionToServer(subscription);
+        })
+        .catch(function (err) {
+            console.log('Erro ao inscrever o usuário:', err);
+        });
+}
+
+// Função para enviar inscrição do Push Notification para o servidor
 function sendSubscriptionToServer(subscription) {
-  // Envia a inscrição para o seu servidor
-  fetch('/api/subscribe', {
-    method: 'POST',
-    body: JSON.stringify(subscription),
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  });
+    fetch('/api/subscribe', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(subscription)
+    })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Inscrição enviada para o servidor:', data);
+        })
+        .catch(error => console.error('Erro ao enviar a inscrição para o servidor:', error));
 }
-
 
 // Função para exibir a notificação de caminhada
 function notificarCaminhada(quantidade) {
@@ -187,6 +164,10 @@ function atualizarGrafico(timestamp) {
     meuGrafico.data.datasets[0].data = distanceData;
     meuGrafico.update();
 }
+
+// Resto do código de controle da caminhada continua igual...
+
+// Lembre-se de incluir todas as outras funções do código conforme estavam (atualização de localização, cálculo de distância, etc.)
 
 function pararCaminhada() {
     if (watchId) {
