@@ -41,14 +41,56 @@ if ("Notification" in window) {
     }
 }
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-    console.log('Service Worker registrado com sucesso: ', registration);
-    // Força a atualização do service worker
-    registration.update();
-  }).catch(function(error) {
-    console.log('Erro ao registrar o Service Worker: ', error);
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(function(registration) {
+      console.log('Service Worker registrado com sucesso:', registration);
+      
+      // Tente atualizar o service worker sempre que ele for registrado
+      registration.update();
+
+      // Verificar a inscrição do push
+      registration.pushManager.getSubscription().then(function(subscription) {
+        if (!subscription) {
+          // Se o usuário não está inscrito, inscreva-o novamente
+          subscribeUser(registration);
+        } else {
+          console.log('Usuário já inscrito:', subscription);
+        }
+      });
+
+    }).catch(function(error) {
+      console.log('Erro ao registrar o Service Worker:', error);
+    });
+}
+
+function subscribeUser(registration) {
+  registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlB64ToUint8Array(publicVapidKey)
+  }).then(function(subscription) {
+    console.log('Usuário inscrito:', subscription);
+    // Enviar a inscrição para o servidor
+    sendSubscriptionToServer(subscription);
+  }).catch(function(err) {
+    console.log('Erro ao inscrever o usuário:', err);
   });
 }
+
+function sendSubscriptionToServer(subscription) {
+  fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(subscription)
+  })
+  .then(response => response.json())
+  .then(data => {
+    console.log('Inscrição enviada para o servidor:', data);
+  })
+  .catch(error => console.error('Erro ao enviar a inscrição para o servidor:', error));
+}
+
 
 // Verifica se o navegador suporta push notifications
 if ('serviceWorker' in navigator && 'PushManager' in window) {
