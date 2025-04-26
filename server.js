@@ -18,6 +18,12 @@ webpush.setVapidDetails(
     privateVapidKey
 );
 
+// Middleware para impedir o cache de respostas
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store'); // Impede o cache de respostas
+  next();
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'views')));
 
@@ -36,39 +42,46 @@ const db = new sqlite3.Database(DB_PATH, err => {
       tempo DECIMAL,
       distancia DECIMAL,
       ritmo TEXT
-    )
+    );
+    
+    CREATE TABLE IF NOT EXISTS subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint TEXT NOT NULL,
+      keys TEXT NOT NULL
+    );
   `;
   db.run(createTableSQL, err => {
     if (err) {
       console.error('Erro ao criar tabela:', err);
     } else {
-      console.log("Tabela 'historico_caminhada' pronta.");
+      console.log("Tabelas criadas ou já existentes.");
     }
   });
 });
 
-// Rota API - inserir
-app.post('/api/historico', (req, res) => {
-    res.setHeader('Cache-Control', 'no-store');  // Previne cache
-  const { data, tempo, distancia, ritmo, subscription } = req.body;  // Agora recebemos a 'subscription' para notificação
-    app.post('/api/subscribe', (req, res) => {
-  const subscription = req.body;
+// Rota API - inscrição para notificações
+app.post('/api/subscribe', (req, res) => {
+  const subscription = req.body; // Inscrição recebida do cliente
 
-  // Salve a inscrição no banco de dados
-  // ou faça qualquer lógica necessária aqui
   console.log('Inscrição recebida:', subscription);
 
-  // Aqui você pode salvar a inscrição no banco de dados ou em qualquer outro lugar
-  db.run('INSERT INTO subscriptions (endpoint, keys) VALUES (?, ?)', [
-    subscription.endpoint, 
-    JSON.stringify(subscription.keys)
-  ], (err) => {
+  const insertSQL = `
+    INSERT INTO subscriptions (endpoint, keys) 
+    VALUES (?, ?)
+  `;
+  
+  // Salvando a inscrição no banco de dados
+  db.run(insertSQL, [subscription.endpoint, JSON.stringify(subscription.keys)], function(err) {
     if (err) {
       return res.status(500).json({ error: 'Erro ao salvar inscrição no servidor' });
     }
     res.status(201).json({ message: 'Inscrição salva com sucesso!' });
   });
 });
+
+// Rota API - inserir histórico de caminhada
+app.post('/api/historico', (req, res) => {
+  const { data, tempo, distancia, ritmo, subscription } = req.body;
 
   const insertSQL = `
     INSERT INTO historico_caminhada (data_inicio, tempo, distancia, ritmo)
@@ -99,7 +112,7 @@ app.post('/api/historico', (req, res) => {
   });
 });
 
-// Rota API - buscar
+// Rota API - buscar histórico de caminhadas
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
