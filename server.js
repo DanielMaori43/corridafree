@@ -1,20 +1,25 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+const webpush = require('web-push');  // Importa a biblioteca web-push
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DB_PATH = path.join(__dirname, 'caminhadas.db');
 
+// Defina as suas chaves públicas e privadas para Web Push
+const publicVapidKey = 'YOUR_PUBLIC_VAPID_KEY';  // Substitua pela sua chave pública
+const privateVapidKey = 'YOUR_PRIVATE_VAPID_KEY';  // Substitua pela sua chave privada
+
+// Configure as chaves do VAPID
+webpush.setVapidDetails(
+    'mailto:seu-email@dominio.com', // Defina seu email aqui
+    publicVapidKey,
+    privateVapidKey
+);
+
 app.use(express.json());
-
-//app.get('/corridafree', (req, res) => {
-  //res.sendFile(path.join(__dirname,'index.html'));
-//});
-
-
 app.use(express.static(path.join(__dirname, 'views')));
-
 
 // Conexão com banco e criação da tabela
 const db = new sqlite3.Database(DB_PATH, err => {
@@ -44,7 +49,7 @@ const db = new sqlite3.Database(DB_PATH, err => {
 
 // Rota API - inserir
 app.post('/api/historico', (req, res) => {
-  const { data, tempo, distancia, ritmo } = req.body;
+  const { data, tempo, distancia, ritmo, subscription } = req.body;  // Agora recebemos a 'subscription' para notificação
 
   const insertSQL = `
     INSERT INTO historico_caminhada (data_inicio, tempo, distancia, ritmo)
@@ -56,6 +61,18 @@ app.post('/api/historico', (req, res) => {
       console.error('Erro ao salvar caminhada:', err);
       return res.status(500).json({ error: 'Falha ao salvar caminhada.' });
     }
+
+    // Envia a notificação Web Push
+    if (subscription) {
+      const payload = JSON.stringify({
+        title: "Boa caminhada!",
+        body: `Você já andou ${distancia} km! Continue assim!`
+      });
+
+      webpush.sendNotification(subscription, payload)
+        .catch(err => console.error('Erro ao enviar notificação Web Push:', err));
+    }
+
     res.status(201).json({
       message: 'Caminhada salva com sucesso!',
       id: this.lastID
@@ -78,8 +95,6 @@ app.get('/api/historico', (req, res) => {
     res.json(rows);
   });
 });
-
-
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
