@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "express": "^5.1.0",
-    "sqlite3": "^5.0.2"
+    "sqlite3": "^5.0.2",
+    "web-push": "^3.6.7"
   },
   "name": "app-caminhada",
   "version": "1.0.0",
