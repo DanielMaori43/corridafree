@@ -52,7 +52,19 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Função para exibir a notificação de caminhada
+function notificarCaminhada(quantidade) {
+    if (Notification.permission === "granted") {
+        const notification = new Notification('Você já andou ' + quantidade + ' km!', {
+            body: 'Continue assim, você está indo muito bem!',
+            icon: '/images/icon.png',
+            badge: '/images/badge.png'
+        });
+    }
+}
 
+// Exemplo de uso: chame esta função quando atingir 1 km
+notificarCaminhada(1);
 
 // Função para falar mensagens com o SpeechSynthesis
 function falarMensagem(mensagem) {
