@@ -13,7 +13,7 @@ const privateVapidKey = '4af7E8gwxVBf2aiuBBFjcVm54RvzMfKF5ysQkcUcNHY';  // Subst
 
 // Configure as chaves do VAPID
 webpush.setVapidDetails(
-    'projetositeviagens@gmail.com', // Defina seu email aqui
+    'mailto:projetositeviagens@gmail.com', // Defina seu email aqui
     publicVapidKey,
     privateVapidKey
 );
