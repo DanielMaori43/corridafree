@@ -1,22 +1,3 @@
-// Definindo a chave pública Vapid
-const publicVapidKey = 'BFdXjAtR3fgd2FWlhKUNdKS6kapmTVPolRw-vWvQKCreMsSh4sPAMwd7lnF5p5ZbdXYZ3JhhFsGDKFfKD2C2C7c';
-
-// Função para converter base64 em Uint8Array
-function urlB64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding)
-    .replace(/\-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
 const graficoCanvas = document.getElementById('meuGrafico').getContext('2d');
 const tempoDecorridoElement = document.getElementById('tempo-decorrido');
 const distanciaPercorridaElement = document.getElementById('distancia-percorrida');
@@ -131,6 +112,18 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
     });
   });
 }
+
+function sendSubscriptionToServer(subscription) {
+  // Envia a inscrição para o seu servidor
+  fetch('/api/subscribe', {
+    method: 'POST',
+    body: JSON.stringify(subscription),
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  });
+}
+
 
 // Função para exibir a notificação de caminhada
 function notificarCaminhada(quantidade) {
@@ -322,35 +315,73 @@ function inicializarGrafico() {
         },
         options: {
             scales: {
-                x: { title: { display: true, text: 'Número de Leituras', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' } },
-                y: { title: { display: true, text: 'Distância (km)', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' } }
-            }
+                x: { title: { display: true, text: 'Número de Leituras', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }},
+                y: { title: { display: true, text: 'Distância (km)', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }}
+            },
+            plugins: { legend: { labels: { color: '#e0e0e0' } } }
         }
     });
 }
 
 function inicializarMapa(lat, lon) {
-    if (mapa) mapa.remove();
-    mapa = L.map(mapaContainer).setView([lat, lon], 13);
-
+    mapa = L.map('mapa-container').setView([lat, lon], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapa);
+}
 
-    polyline = L.polyline([], { color: 'blue' }).addTo(mapa);
+function desenharRotaNoMapa() {
+    if (mapa && pathCoordinates.length > 1) {
+        if (polyline) mapa.removeLayer(polyline);
+        polyline = L.polyline(pathCoordinates, { color: 'blue' }).addTo(mapa);
+        mapa.fitBounds(polyline.getBounds());
+    }
 }
 
 function atualizarMapaComNovaCoordenada(lat, lon) {
-    if (polyline) {
-        polyline.addLatLng([lat, lon]);
+    if (mapa) {
+        if (!polyline) {
+            polyline = L.polyline([lat, lon], { color: 'blue' }).addTo(mapa);
+        } else {
+            polyline.addLatLng([lat, lon]);
+        }
     }
-    mapa.setView([lat, lon], 15);
 }
 
-toggleAudioButton.addEventListener('click', function() {
-    audioAtivado = !audioAtivado;
-    toggleAudioButton.textContent = audioAtivado ? "🔊" : "🔇";
+function carregarHistorico() {
+    fetch('/api/historico')
+        .then(res => res.json())
+        .then(data => {
+            const lista = document.getElementById('lista-historico');
+            lista.innerHTML = '';
+            data.forEach(c => {
+                const item = document.createElement('li');
+                item.innerHTML = `
+                    <span style="color: #03dac6;">📅 ${new Date(c.data).toLocaleString()}</span><br>
+                    🚶 <strong>${c.distancia} km</strong> | ⏱️ ${c.tempo} | 🏃 Ritmo: ${c.ritmo || 'N/A'}
+                `;
+                lista.appendChild(item);
+            });
+        })
+        .catch(err => {
+            console.error("Erro ao carregar histórico:", err);
+        });
+}
+
+document.getElementById('limpar-historico').addEventListener('click', () => {
+    fetch('/api/historico', { method: 'DELETE' })
+        .then(() => {
+            feedbackElement.textContent = "🧹 Histórico limpo com sucesso!";
+            carregarHistorico();
+        });
 });
+
+// ✅ Botão de som corrigido
+toggleAudioButton.addEventListener('click', () => {
+    audioAtivado = !audioAtivado;
+    toggleAudioButton.textContent = audioAtivado ? '🔊' : '🔇';
+});
+
 iniciarCaminhadaBotao.addEventListener('click', () => {
     console.log("Botão Iniciar Caminhada foi clicado!");
     iniciarCaminhada();
