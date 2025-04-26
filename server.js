@@ -49,6 +49,7 @@ const db = new sqlite3.Database(DB_PATH, err => {
 
 // Rota API - inserir
 app.post('/api/historico', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');  // Previne cache
   const { data, tempo, distancia, ritmo, subscription } = req.body;  // Agora recebemos a 'subscription' para notificação
 
   const insertSQL = `
