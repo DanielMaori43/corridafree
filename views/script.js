@@ -43,36 +43,28 @@ if ("Notification" in window) {
 
 // Registro do Service Worker
 if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/service-worker.js')
-        .then(function (registration) {
-            console.log('Service Worker registrado com sucesso:', registration);
-
-            // Tente atualizar o service worker sempre que ele for registrado
-            registration.update();
-
-            // Verificar inscrição do push
-            verificarPushSubscription(registration);
-        })
-        .catch(function (error) {
-            console.log('Erro ao registrar o Service Worker:', error);
-        });
+  navigator.serviceWorker.register('/service-worker.js')
+    .then(function(registration) {
+      console.log('Service Worker registrado com sucesso:', registration);
+      registration.update(); // Tenta atualizar o service worker
+    }).catch(function(error) {
+      console.log('Erro ao registrar o Service Worker:', error);
+    });
 }
+
 // Verificar permissão para notificações
 if ("Notification" in window) {
-    if (Notification.permission === "granted") {
-        iniciarRegistroServiceWorker();
-    } else {
-        Notification.requestPermission().then(function(permission) {
-            if (permission === "granted") {
-                console.log("Permissão para notificações concedida!");
-                iniciarRegistroServiceWorker();
-            } else {
-                console.log("Permissão para notificações negada.");
-            }
-        }).catch(function(err) {
-            console.error("Erro ao solicitar permissão para notificações:", err);
-        });
-    }
+  if (Notification.permission !== "granted") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        console.log("Permissão para notificações concedida!");
+      } else {
+        console.log("Permissão para notificações negada.");
+      }
+    });
+  } else {
+    console.log("Permissão já concedida");
+  }
 }
 
 function iniciarRegistroServiceWorker() {
@@ -113,17 +105,25 @@ function verificarPushSubscription(registration) {
 
 // Função para se inscrever em Push Notifications
 function subscribeUser(registration) {
-    registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(publicVapidKey)
-    })
-        .then(function (subscription) {
-            console.log('Usuário inscrito:', subscription);
-            sendSubscriptionToServer(subscription);
-        })
-        .catch(function (err) {
-            console.log('Erro ao inscrever o usuário:', err);
-        });
+  registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlB64ToUint8Array(publicVapidKey)
+  }).then(function(subscription) {
+    console.log('Usuário inscrito:', subscription);
+    // Salva a inscrição no localStorage
+    localStorage.setItem('pushSubscription', JSON.stringify(subscription));  
+    sendSubscriptionToServer(subscription);
+  }).catch(function(err) {
+    console.log('Erro ao inscrever o usuário:', err);
+  });
+}
+
+
+const savedSubscription = localStorage.getItem('pushSubscription');
+if (savedSubscription) {
+  const subscription = JSON.parse(savedSubscription);
+  console.log('Inscrição recuperada do localStorage:', subscription);
+  sendSubscriptionToServer(subscription);
 }
 
 // Função para enviar inscrição do Push Notification para o servidor
