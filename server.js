@@ -51,6 +51,24 @@ const db = new sqlite3.Database(DB_PATH, err => {
 app.post('/api/historico', (req, res) => {
     res.setHeader('Cache-Control', 'no-store');  // Previne cache
   const { data, tempo, distancia, ritmo, subscription } = req.body;  // Agora recebemos a 'subscription' para notificação
+    app.post('/api/subscribe', (req, res) => {
+  const subscription = req.body;
+
+  // Salve a inscrição no banco de dados
+  // ou faça qualquer lógica necessária aqui
+  console.log('Inscrição recebida:', subscription);
+
+  // Aqui você pode salvar a inscrição no banco de dados ou em qualquer outro lugar
+  db.run('INSERT INTO subscriptions (endpoint, keys) VALUES (?, ?)', [
+    subscription.endpoint, 
+    JSON.stringify(subscription.keys)
+  ], (err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Erro ao salvar inscrição no servidor' });
+    }
+    res.status(201).json({ message: 'Inscrição salva com sucesso!' });
+  });
+});
 
   const insertSQL = `
     INSERT INTO historico_caminhada (data_inicio, tempo, distancia, ritmo)
