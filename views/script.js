@@ -351,3 +351,10 @@ toggleAudioButton.addEventListener('click', function() {
     audioAtivado = !audioAtivado;
     toggleAudioButton.textContent = audioAtivado ? "🔊" : "🔇";
 });
+iniciarCaminhadaBotao.addEventListener('click', () => {
+    console.log("Botão Iniciar Caminhada foi clicado!");
+    iniciarCaminhada();
+});
+
+pararCaminhadaBotao.addEventListener('click', pararCaminhada);
+window.addEventListener('DOMContentLoaded', carregarHistorico);
