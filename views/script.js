@@ -41,14 +41,12 @@ if ("Notification" in window) {
     }
 }
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
-      .then(registration => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      })
-      .catch(error => {
-        console.log('Falha ao registrar Service Worker:', error);
-      });
+  navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
+    console.log('Service Worker registrado com sucesso: ', registration);
+    // Força a atualização do service worker
+    registration.update();
+  }).catch(function(error) {
+    console.log('Erro ao registrar o Service Worker: ', error);
   });
 }
 
