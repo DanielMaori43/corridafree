@@ -1,36 +1,38 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const webpush = require('web-push');  // Importa a biblioteca web-push
+// Importação dos módulos necessários
+const express = require('express');          // Framework para criar servidor HTTP
+const sqlite3 = require('sqlite3').verbose(); // Driver para conectar e manipular banco SQLite
+const path = require('path');                 // Utilitário para lidar com caminhos de arquivos
+const webpush = require('web-push');           // Biblioteca para envio de notificações Push Web
 
-const app = express();
-const PORT = process.env.PORT || 3000;
-const DB_PATH = path.join(__dirname, 'caminhadas.db');
+const app = express();                        // Criação da aplicação Express
+const PORT = process.env.PORT || 3000;         // Porta do servidor
+const DB_PATH = path.join(__dirname, 'caminhadas.db'); // Caminho do banco de dados
 
-// Defina as suas chaves públicas e privadas para Web Push
-const publicVapidKey = 'BFdXjAtR3fgd2FWlhKUNdKS6kapmTVPolRw-vWvQKCreMsSh4sPAMwd7lnF5p5ZbdXYZ3JhhFsGDKFfKD2C2C7c';  // Substitua pela sua chave pública
-const privateVapidKey = '4af7E8gwxVBf2aiuBBFjcVm54RvzMfKF5ysQkcUcNHY';  // Substitua pela sua chave privada
-
-// Configure as chaves do VAPID
+// Configuração das chaves VAPID (Web Push Notifications)
+const publicVapidKey = '...';    // Substituir pela sua chave pública
+const privateVapidKey = '...';   // Substituir pela sua chave privada
 webpush.setVapidDetails(
-    'mailto:projetositeviagens@gmail.com', // Defina seu email aqui
-    publicVapidKey,
-    privateVapidKey
+  'mailto:projetositeviagens@gmail.com',       // Email de contato
+  publicVapidKey,
+  privateVapidKey
 );
 
-// Middleware para impedir o cache de respostas
+// Middleware para impedir que respostas sejam armazenadas em cache
 app.use((req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store'); // Impede o cache de respostas
+  res.setHeader('Cache-Control', 'no-store');
   next();
 });
 
+// Middleware para interpretar o corpo das requisições como JSON
 app.use(express.json());
+
+// Middleware para servir arquivos estáticos da pasta 'views'
 app.use(express.static(path.join(__dirname, 'views')));
 
-// Conexão com banco e criação da tabela
+// Conexão e criação das tabelas do banco de dados
 const db = new sqlite3.Database(DB_PATH, err => {
   if (err) {
-    console.error('Erro ao abrir o banco de dados', err);
+    console.error('Erro ao abrir banco de dados', err);
     process.exit(1);
   }
   console.log('Conectado ao SQLite em', DB_PATH);
@@ -43,34 +45,30 @@ const db = new sqlite3.Database(DB_PATH, err => {
       distancia DECIMAL,
       ritmo TEXT
     );
-    
     CREATE TABLE IF NOT EXISTS subscriptions (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       endpoint TEXT NOT NULL,
       keys TEXT NOT NULL
     );
   `;
-  db.run(createTableSQL, err => {
+  db.exec(createTableSQL, err => {
     if (err) {
-      console.error('Erro ao criar tabela:', err);
+      console.error('Erro ao criar tabelas:', err);
     } else {
-      console.log("Tabelas criadas ou já existentes.");
+      console.log('Tabelas criadas ou já existentes.');
     }
   });
 });
 
-// Rota API - inscrição para notificações
+// Rota para receber inscrição de push notification
 app.post('/api/subscribe', (req, res) => {
-  const subscription = req.body; // Inscrição recebida do cliente
-
-  console.log('Inscrição recebida:', subscription);
+  const subscription = req.body;
 
   const insertSQL = `
     INSERT INTO subscriptions (endpoint, keys) 
     VALUES (?, ?)
   `;
-  
-  // Salvando a inscrição no banco de dados
+
   db.run(insertSQL, [subscription.endpoint, JSON.stringify(subscription.keys)], function(err) {
     if (err) {
       return res.status(500).json({ error: 'Erro ao salvar inscrição no servidor' });
@@ -79,7 +77,7 @@ app.post('/api/subscribe', (req, res) => {
   });
 });
 
-// Rota API - inserir histórico de caminhada
+// Rota para salvar dados de uma caminhada
 app.post('/api/historico', (req, res) => {
   const { data, tempo, distancia, ritmo, subscription } = req.body;
 
@@ -94,7 +92,7 @@ app.post('/api/historico', (req, res) => {
       return res.status(500).json({ error: 'Falha ao salvar caminhada.' });
     }
 
-    // Envia a notificação Web Push
+    // Se houver uma inscrição, envia notificação
     if (subscription) {
       const payload = JSON.stringify({
         title: "Boa caminhada!",
@@ -107,18 +105,19 @@ app.post('/api/historico', (req, res) => {
 
     res.status(201).json({
       message: 'Caminhada salva com sucesso!',
-      id: this.lastID
+      id: this.lastID // ID da caminhada recém-criada
     });
   });
 });
 
-// Rota API - buscar histórico de caminhadas
+// Rota para listar todas as caminhadas registradas
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
     FROM historico_caminhada
     ORDER BY data_inicio DESC
   `;
+
   db.all(selectSQL, [], (err, rows) => {
     if (err) {
       console.error('Erro ao buscar histórico:', err);
@@ -128,6 +127,28 @@ app.get('/api/historico', (req, res) => {
   });
 });
 
+// >>> NOVA FUNÇÃO: Excluir uma caminhada pelo ID
+app.delete('/api/historico/:id', (req, res) => {
+  const { id } = req.params;
+
+  const deleteSQL = `
+    DELETE FROM historico_caminhada
+    WHERE id = ?
+  `;
+
+  db.run(deleteSQL, [id], function(err) {
+    if (err) {
+      console.error('Erro ao deletar caminhada:', err);
+      return res.status(500).json({ error: 'Falha ao deletar caminhada.' });
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Caminhada não encontrada.' });
+    }
+    res.json({ message: 'Caminhada deletada com sucesso!' });
+  });
+});
+
+// Inicializa o servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
