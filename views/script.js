@@ -369,33 +369,56 @@ function atualizarMapaComNovaCoordenada(lat, lon) {
     }
 }
 
+// Função para carregar o histórico de caminhadas
 function carregarHistorico() {
     fetch('/api/historico')
-        .then(res => res.json())
-        .then(data => {
-            const lista = document.getElementById('lista-historico');
-            lista.innerHTML = '';
-            data.forEach(c => {
-                const item = document.createElement('li');
-                item.innerHTML = `
-                    <span style="color: #03dac6;">📅 ${new Date(c.data).toLocaleString()}</span><br>
-                    🚶 <strong>${c.distancia} km</strong> | ⏱️ ${c.tempo} | 🏃 Ritmo: ${c.ritmo || 'N/A'}
-                `;
-                lista.appendChild(item);
-            });
-        })
-        .catch(err => {
-            console.error("Erro ao carregar histórico:", err);
+      .then(response => response.json())
+      .then(historico => {
+        const lista = document.getElementById('lista-historico');
+        lista.innerHTML = ''; // Limpa a lista atual
+  
+        historico.forEach(item => {
+          const li = document.createElement('li');
+          li.innerHTML = `
+            <strong>Data:</strong> ${new Date(item.data).toLocaleString()} <br>
+            <strong>Tempo:</strong> ${item.tempo} min<br>
+            <strong>Distância:</strong> ${item.distancia} km<br>
+            <strong>Ritmo:</strong> ${item.ritmo}<br>
+            <button onclick="excluirCaminhada(${item.id})">Excluir</button>
+            <hr>
+          `;
+          lista.appendChild(li);
         });
-}
-
-document.getElementById('limpar-historico').addEventListener('click', () => {
-    fetch('/api/historico', { method: 'DELETE' })
-        .then(() => {
-            feedbackElement.textContent = "🧹 Histórico limpo com sucesso!";
-            carregarHistorico();
-        });
-});
+      })
+      .catch(error => {
+        console.error('Erro ao carregar histórico:', error);
+      });
+  }
+  
+  // Função para excluir uma caminhada pelo ID
+  function excluirCaminhada(id) {
+    if (confirm('Tem certeza que deseja excluir esta caminhada?')) {
+      fetch(`/api/historico/${id}`, {
+        method: 'DELETE'
+      })
+      .then(response => {
+        if (response.ok) {
+          alert('Caminhada excluída com sucesso!');
+          carregarHistorico(); // Recarrega a lista depois da exclusão
+        } else {
+          response.json().then(data => {
+            alert('Erro ao excluir: ' + (data.error || 'Erro desconhecido.'));
+          });
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao excluir caminhada:', error);
+      });
+    }
+  }
+  
+  // Carregar o histórico assim que a página abrir
+  carregarHistorico();
 
 // ✅ Botão de som corrigido
 toggleAudioButton.addEventListener('click', () => {
