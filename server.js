@@ -9,8 +9,8 @@ const PORT = process.env.PORT || 3000;         // Porta do servidor
 const DB_PATH = path.join(__dirname, 'caminhadas.db'); // Caminho do banco de dados
 
 // Configuração das chaves VAPID (Web Push Notifications)
-const publicVapidKey = '...';    // Substituir pela sua chave pública
-const privateVapidKey = '...';   // Substituir pela sua chave privada
+const publicVapidKey = 'BCa1XcQTdyOQU_QKNlHKjo7cYnGQBKc8h8u5DSRKrYEB2iYP2Bq2vhlddz-TntdCpu7oJfoXUR_2KgWsSrb8tm8';    // Substituir pela sua chave pública
+const privateVapidKey = 'v9HMSf_LVQmRTe3-dalykeSf4CYDsggFKt3phADQxKQ';   // Substituir pela sua chave privada
 webpush.setVapidDetails(
   'mailto:projetositeviagens@gmail.com',       // Email de contato
   publicVapidKey,
