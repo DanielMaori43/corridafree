@@ -233,18 +233,8 @@ function pararCaminhada() {
         .then(res => {
             if (res.ok) {
                 feedbackElement.textContent = "✅ Caminhada salva no histórico!";
-                function salvarImagemDoMapa() {
-  const mapaEl = document.getElementById("mapa-container");
-  html2canvas(mapaEl).then(canvas => {
-    const imagem = canvas.toDataURL("image/png");
-
-    const link = document.createElement('a');
-    link.href = imagem;
-    link.download = `trajeto-${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.png`;
-    link.click();
-  });
-}
-});
+        carregarHistorico();
+        salvarImagemDoMapa();
                 carregarHistorico();
             } else {
                 feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
@@ -356,18 +346,12 @@ function inicializarGrafico() {
     });
 }
 
-function inicializarMapa(lat, lng) {
-    if (mapa) return; // já foi inicializado, não faz de novo
-  
-    mapa = L.map('mapa-container').setView([lat, lng], 15);
-  
+function inicializarMapa(lat, lon) {
+    mapa = L.map('mapa-container').setView([lat, lon], 15);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
+        attribution: '&copy; OpenStreetMap contributors'
     }).addTo(mapa);
-  
-    polyline = L.polyline([], { color: 'cyan' }).addTo(mapa);
-  }
-  
+}
 
 function desenharRotaNoMapa() {
     if (mapa && pathCoordinates.length > 1) {
@@ -454,15 +438,14 @@ window.addEventListener('DOMContentLoaded', carregarHistorico);
 
 
 
-window.addEventListener('load', () => {
-  inicializarGrafico(); // mostra gráfico vazio
-  inicializarMapa(-20.0, -45.0); // coordenadas padrão (pode ajustar)
+function salvarImagemDoMapa() {
+  const mapaEl = document.getElementById("mapa-container");
+  html2canvas(mapaEl).then(canvas => {
+    const imagem = canvas.toDataURL("image/png");
 
-  // opcional: centra o mapa na posição atual
-  navigator.geolocation.getCurrentPosition(position => {
-    const { latitude, longitude } = position.coords;
-    mapa.setView([latitude, longitude], 15);
+    const link = document.createElement('a');
+    link.href = imagem;
+    link.download = `trajeto-${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.png`;
+    link.click();
   });
-});
-
-
+}
