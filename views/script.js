@@ -344,11 +344,16 @@ function inicializarGrafico() {
     });
 }
 
-function inicializarMapa(lat, lon) {
-    mapa = L.map('mapa-container').setView([lat, lon], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(mapa);
+function inicializarMapa(lat, lng) {
+  if (mapa) return; // já foi inicializado, não faz de novo
+
+  mapa = L.map('mapa-container').setView([lat, lng], 15);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(mapa);
+
+  polyline = L.polyline([], { color: 'cyan' }).addTo(mapa);
 }
 
 function desenharRotaNoMapa() {
