@@ -452,3 +452,13 @@ window.addEventListener('load', () => {
     mapa.setView([latitude, longitude], 15);
   });
 });
+
+html2canvas(document.getElementById("mapa-container")).then(canvas => {
+  const imgData = canvas.toDataURL("image/png");
+
+  // Baixar automaticamente
+  const link = document.createElement('a');
+  link.href = imgData;
+  link.download = `caminhada-${Date.now()}.png`;
+  link.click();
+});
