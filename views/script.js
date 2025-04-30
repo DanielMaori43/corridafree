@@ -233,15 +233,17 @@ function pararCaminhada() {
         .then(res => {
             if (res.ok) {
                 feedbackElement.textContent = "✅ Caminhada salva no histórico!";
-                html2canvas(document.getElementById("mapa-container")).then(canvas => {
-  const imgData = canvas.toDataURL("image/png");
-    console.log(imgData)
-  // Baixar automaticamente
-  const link = document.createElement('a');
-  link.href = imgData;
-  link.download = `caminhada-${Date.now()}.png`;
-  link.click();
-     console.log(link)
+                function salvarImagemDoMapa() {
+  const mapaEl = document.getElementById("mapa-container");
+  html2canvas(mapaEl).then(canvas => {
+    const imagem = canvas.toDataURL("image/png");
+
+    const link = document.createElement('a');
+    link.href = imagem;
+    link.download = `trajeto-${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.png`;
+    link.click();
+  });
+}
 });
                 carregarHistorico();
             } else {
