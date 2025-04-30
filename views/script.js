@@ -436,6 +436,8 @@ window.addEventListener('DOMContentLoaded', carregarHistorico);
 
 
 
+iniciarCaminhadaBotao.addEventListener('click', iniciarCaminhada);
+
 window.addEventListener('load', () => {
   inicializarGrafico(); // mostra gráfico vazio
   inicializarMapa(-20.0, -45.0); // coordenadas padrão (pode ajustar)
