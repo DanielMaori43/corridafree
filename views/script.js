@@ -455,10 +455,11 @@ window.addEventListener('load', () => {
 
 html2canvas(document.getElementById("mapa-container")).then(canvas => {
   const imgData = canvas.toDataURL("image/png");
-
+    console.log(imgData)
   // Baixar automaticamente
   const link = document.createElement('a');
   link.href = imgData;
   link.download = `caminhada-${Date.now()}.png`;
   link.click();
+     console.log(link)
 });
