@@ -231,15 +231,14 @@ function pararCaminhada() {
             })
         })
         .then(res => {
-           if (res.ok) {
-  feedbackElement.textContent = "✅ Caminhada salva no histórico!";
-  carregarHistorico();
-  salvarImagemDoMapa(); // <-- Essa linha é essencial
-}
-            } else {
-                feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
-            }
-        });
+  if (res.ok) {
+    feedbackElement.textContent = "✅ Caminhada salva no histórico!";
+    carregarHistorico();
+    salvarImagemDoMapa();
+  } else {
+    feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
+  }
+});
 
         if (audioAtivado) falarMensagem(`Caminhada finalizada. Distância total percorrida: ${distancia} quilômetros.`);
         desenharRotaNoMapa();
@@ -448,3 +447,13 @@ function salvarImagemDoMapa() {
     link.click();
   });
 }
+window.addEventListener('load', () => {
+  inicializarGrafico(); // gráfico vazio
+  inicializarMapa(-20.0, -45.0); // posição inicial genérica
+
+  // opcional: centralizar no local atual
+  navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+    mapa.setView([latitude, longitude], 15);
+  });
+});
