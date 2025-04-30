@@ -159,10 +159,11 @@ notificarCaminhada(1);
 // Função para falar mensagens com o SpeechSynthesis
 function falarMensagem(mensagem) {
     if ('speechSynthesis' in window && audioAtivado) {
-        const utterance = new SpeechSynthesisUtterance(mensagem);
-        window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.cancel(); // força limpar o que estava travado
+      const utterance = new SpeechSynthesisUtterance(mensagem);
+      window.speechSynthesis.speak(utterance);
     }
-}
+  }
 
 function iniciarCaminhada() {
   console.log("Iniciando caminhada...");
