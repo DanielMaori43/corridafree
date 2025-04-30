@@ -463,21 +463,14 @@ function salvarImagemDoMapa() {
     link.click();
   });
 }
-//window.addEventListener('load', () => {
- // inicializarGrafico(); // gráfico vazio
-//  inicializarMapa(-20.0, -45.0); // posição inicial genérica
-
-//  // opcional: centralizar no local atual
-//  navigator.geolocation.getCurrentPosition(pos => {
-//    const { latitude, longitude } = pos.coords;
- //   mapa.setView([latitude, longitude], 15);
-  });
-});
 window.addEventListener('load', () => {
-  inicializarGrafico();
-  inicializarMapa(-20.0, -45.0);
+ inicializarGrafico(); // gráfico vazio
+  inicializarMapa(-20.0, -45.0); // posição inicial genérica
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    mapa.setView([pos.coords.latitude, pos.coords.longitude], 15);
+ // opcional: centralizar no local atual
+ navigator.geolocation.getCurrentPosition(pos => {
+    const { latitude, longitude } = pos.coords;
+    mapa.setView([latitude, longitude], 15);
   });
 });
+
