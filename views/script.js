@@ -233,8 +233,6 @@ function pararCaminhada() {
         .then(res => {
             if (res.ok) {
                 feedbackElement.textContent = "✅ Caminhada salva no histórico!";
-        carregarHistorico();
-        salvarImagemDoMapa();
                 carregarHistorico();
             } else {
                 feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
@@ -437,15 +435,16 @@ pararCaminhadaBotao.addEventListener('click', pararCaminhada);
 window.addEventListener('DOMContentLoaded', carregarHistorico);
 
 
-
 function salvarImagemDoMapa() {
   const mapaEl = document.getElementById("mapa-container");
-  html2canvas(mapaEl).then(canvas => {
-    const imagem = canvas.toDataURL("image/png");
-
-    const link = document.createElement('a');
-    link.href = imagem;
-    link.download = `trajeto-${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.png`;
-    link.click();
-  });
+  domtoimage.toPng(mapaEl)
+    .then(function (dataUrl) {
+      const link = document.createElement('a');
+      link.download = `trajeto-${Date.now()}.png`;
+      link.href = dataUrl;
+      link.click();
+    })
+    .catch(function (error) {
+      console.error('Erro ao gerar imagem:', error);
+    });
 }
