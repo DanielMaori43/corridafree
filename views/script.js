@@ -433,3 +433,16 @@ iniciarCaminhadaBotao.addEventListener('click', () => {
 
 pararCaminhadaBotao.addEventListener('click', pararCaminhada);
 window.addEventListener('DOMContentLoaded', carregarHistorico);
+
+
+
+window.addEventListener('load', () => {
+  inicializarGrafico(); // mostra gráfico vazio
+  inicializarMapa(-20.0, -45.0); // coordenadas padrão (pode ajustar)
+
+  // opcional: centra o mapa na posição atual
+  navigator.geolocation.getCurrentPosition(position => {
+    const { latitude, longitude } = position.coords;
+    mapa.setView([latitude, longitude], 15);
+  });
+});
