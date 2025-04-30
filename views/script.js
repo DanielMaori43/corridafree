@@ -165,37 +165,45 @@ function falarMensagem(mensagem) {
 }
 
 function iniciarCaminhada() {
-    console.log("Iniciando caminhada...");
+  console.log("Iniciando caminhada...");
 
-    startTime = Date.now();
-    totalDistance = 0;
-    previousPosition = null;
-    distanceData = [];
-    timeData = [];
-    pathCoordinates = [];
-    tempoDecorridoElement.textContent = '00:00:00';
-    distanciaPercorridaElement.textContent = '0.00 km';
-    ritmoAtualElement.textContent = '0:00';
-    feedbackElement.textContent = '';
-    ritmoInicial = null;
-    paradoDesde = null;
-    ritmoInicialRegistrado = false;
-    ritmoDiminuiuAvisado = false;
+  // Reseta as variáveis e atualiza a interface
+  startTime = Date.now();
+  totalDistance = 0;
+  previousPosition = null;
+  distanceData = [];
+  timeData = [];
+  pathCoordinates = [];
+  tempoDecorridoElement.textContent = '00:00:00';
+  distanciaPercorridaElement.textContent = '0.00 km';
+  ritmoAtualElement.textContent = '0:00';
+  feedbackElement.textContent = '';
+  ritmoInicial = null;
+  paradoDesde = null;
+  ritmoInicialRegistrado = false;
+  ritmoDiminuiuAvisado = false;
 
-    if (audioAtivado) falarMensagem("Caminhada iniciada!");
-    inicializarGrafico();
-    inicializarMapa(-20.0, -45.0);
+  if (audioAtivado) falarMensagem("Caminhada iniciada!");
 
-    watchId = navigator.geolocation.watchPosition(atualizarLocalizacao, tratarErro, {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
-    });
+  // Não chama mais a inicialização do mapa (não duplicar)
+  // Apenas recentra o mapa no início da caminhada com a localização atual
+  navigator.geolocation.getCurrentPosition(pos => {
+    mapa.setView([pos.coords.latitude, pos.coords.longitude], 15);
+  });
 
-    timerInterval = setInterval(atualizarTempo, 1000);
-    iniciarCaminhadaBotao.disabled = true;
-    pararCaminhadaBotao.disabled = false;
+  // Começa a assistir a posição do usuário para atualizar a localização
+  watchId = navigator.geolocation.watchPosition(atualizarLocalizacao, tratarErro, {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+  });
+
+  // Inicia o temporizador para a caminhada
+  timerInterval = setInterval(atualizarTempo, 1000);
+  iniciarCaminhadaBotao.disabled = true;
+  pararCaminhadaBotao.disabled = false;
 }
+
 
 function atualizarGrafico(timestamp) {
     distanceData.push(totalDistance);
@@ -346,10 +354,18 @@ function inicializarGrafico() {
 }
 
 function inicializarMapa(lat, lon) {
-    mapa = L.map('mapa-container').setView([lat, lon], 15);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(mapa);
+  // Se já existe, não faz nada
+  if (mapa) return;
+
+  // Cria o mapa só na primeira vez
+  mapa = L.map('mapa-container').setView([lat, lon], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    crossOrigin: true
+  }).addTo(mapa);
+
+  // Inicializa a polyline vazia
+  polyline = L.polyline([], { color: 'blue' }).addTo(mapa);
 }
 
 function desenharRotaNoMapa() {
@@ -447,13 +463,21 @@ function salvarImagemDoMapa() {
     link.click();
   });
 }
-window.addEventListener('load', () => {
-  inicializarGrafico(); // gráfico vazio
-  inicializarMapa(-20.0, -45.0); // posição inicial genérica
+//window.addEventListener('load', () => {
+ // inicializarGrafico(); // gráfico vazio
+//  inicializarMapa(-20.0, -45.0); // posição inicial genérica
 
-  // opcional: centralizar no local atual
+//  // opcional: centralizar no local atual
+//  navigator.geolocation.getCurrentPosition(pos => {
+//    const { latitude, longitude } = pos.coords;
+ //   mapa.setView([latitude, longitude], 15);
+  });
+});
+window.addEventListener('load', () => {
+  inicializarGrafico();
+  inicializarMapa(-20.0, -45.0);
+
   navigator.geolocation.getCurrentPosition(pos => {
-    const { latitude, longitude } = pos.coords;
-    mapa.setView([latitude, longitude], 15);
+    mapa.setView([pos.coords.latitude, pos.coords.longitude], 15);
   });
 });
