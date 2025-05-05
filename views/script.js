@@ -1,3 +1,4 @@
+// Seletores de elementos da interface
 const graficoCanvas = document.getElementById('meuGrafico').getContext('2d');
 const tempoDecorridoElement = document.getElementById('tempo-decorrido');
 const distanciaPercorridaElement = document.getElementById('distancia-percorrida');
@@ -7,8 +8,9 @@ const mapaContainer = document.getElementById('mapa-container');
 const ritmoAtualElement = document.getElementById('ritmo-atual');
 const feedbackElement = document.getElementById('feedback-mensagem');
 const toggleAudioButton = document.getElementById('toggle-audio');
-const cron = require("node-cron");
+const cron = require("node-cron"); // (Parece não utilizado aqui, pode ser removido)
 
+// Variáveis de controle da caminhada
 let startTime;
 let previousPosition = null;
 let totalDistance = 0;
@@ -26,127 +28,88 @@ let paradoDesde = null;
 let audioAtivado = true;
 let ritmoInicialRegistrado = false;
 let ritmoDiminuiuAvisado = false;
-const LIMIAR_VELOCIDADE = 0.1;
-const TEMPO_LIMITE_PARADO = 120000;
 
-// Função para não parar a mensagem quando a tela estiver travada
+// Constantes para detecção de parada
+const LIMIAR_VELOCIDADE = 0.1; // em m/s
+const TEMPO_LIMITE_PARADO = 120000; // 2 minutos
+
+// Solicita permissão para enviar notificações ao usuário
 if ("Notification" in window) {
     if (Notification.permission !== "granted") {
         Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                console.log("Permissão para notificações concedida!");
-            } else {
-                console.log("Permissão para notificações negada.");
-            }
+            console.log("Permissão para notificações:", permission);
         });
     }
 }
 
-// Registro do Service Worker
+// Registro do Service Worker para notificações push
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/service-worker.js')
-    .then(function(registration) {
+    .then(registration => {
       console.log('Service Worker registrado com sucesso:', registration);
-      registration.update(); // Tenta atualizar o service worker
-    }).catch(function(error) {
-      console.log('Erro ao registrar o Service Worker:', error);
+      registration.update(); // Força atualização
+    }).catch(error => {
+      console.log('Erro ao registrar Service Worker:', error);
     });
 }
 
-// Verificar permissão para notificações
-if ("Notification" in window) {
-  if (Notification.permission !== "granted") {
-    Notification.requestPermission().then(permission => {
-      if (permission === "granted") {
-        console.log("Permissão para notificações concedida!");
-      } else {
-        console.log("Permissão para notificações negada.");
-      }
-    });
-  } else {
-    console.log("Permissão já concedida");
-  }
-}
-
+// Inicializa e verifica inscrição em notificações push
 function iniciarRegistroServiceWorker() {
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.register('/service-worker.js')
-            .then(function(registration) {
-                console.log('Service Worker registrado com sucesso:', registration);
-
+            .then(registration => {
+                console.log('Service Worker registrado:', registration);
                 registration.update();
-
-                registration.pushManager.getSubscription().then(function(subscription) {
-                    if (!subscription) {
-                        // Se o usuário não está inscrito, inscreva-o
-                        subscribeUser(registration);
-                    } else {
-                        console.log('Usuário já inscrito:', subscription);
-                    }
-                });
-
-            }).catch(function(error) {
-                console.log('Erro ao registrar o Service Worker:', error);
-            });
+                verificarPushSubscription(registration);
+            })
+            .catch(error => console.log('Erro ao registrar SW:', error));
     }
 }
 
-// Função para verificar e gerenciar a inscrição do push
+// Verifica se o usuário já está inscrito no Push Notification
 function verificarPushSubscription(registration) {
-    registration.pushManager.getSubscription().then(function (subscription) {
+    registration.pushManager.getSubscription().then(subscription => {
         if (!subscription) {
-            console.log('Usuário não está inscrito, inscrevendo...');
             subscribeUser(registration);
         } else {
-            console.log('Usuário já inscrito:', subscription);
-            sendSubscriptionToServer(subscription); // Enviar a inscrição atual para o servidor
+            sendSubscriptionToServer(subscription);
         }
     });
 }
 
-// Função para se inscrever em Push Notifications
+// Realiza inscrição em notificações push
 function subscribeUser(registration) {
   registration.pushManager.subscribe({
     userVisibleOnly: true,
     applicationServerKey: urlB64ToUint8Array(publicVapidKey)
-  }).then(function(subscription) {
-    console.log('Usuário inscrito:', subscription);
-    // Salva a inscrição no localStorage
-    localStorage.setItem('pushSubscription', JSON.stringify(subscription));  
+  }).then(subscription => {
+    localStorage.setItem('pushSubscription', JSON.stringify(subscription));
     sendSubscriptionToServer(subscription);
-  }).catch(function(err) {
-    console.log('Erro ao inscrever o usuário:', err);
-  });
+  }).catch(err => console.log('Erro ao inscrever:', err));
 }
 
-
+// Recupera inscrição salva localmente
 const savedSubscription = localStorage.getItem('pushSubscription');
 if (savedSubscription) {
-  const subscription = JSON.parse(savedSubscription);
-  console.log('Inscrição recuperada do localStorage:', subscription);
-  sendSubscriptionToServer(subscription);
+  sendSubscriptionToServer(JSON.parse(savedSubscription));
 }
 
-// Função para enviar inscrição do Push Notification para o servidor
+// Envia inscrição ao backend
 function sendSubscriptionToServer(subscription) {
     fetch('/api/subscribe', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(subscription)
     })
-        .then(response => response.json())
-        .then(data => {
-            console.log('Inscrição enviada para o servidor:', data);
-        })
-        .catch(error => console.error('Erro ao enviar a inscrição para o servidor:', error));
+    .then(res => res.json())
+    .then(data => console.log('Inscrição enviada:', data))
+    .catch(error => console.error('Erro ao enviar inscrição:', error));
 }
 
-// Função para exibir a notificação de caminhada
+// Exibe notificação de motivação com a distância
 function notificarCaminhada(quantidade) {
     if (Notification.permission === "granted") {
-        const notification = new Notification('Você já andou ' + quantidade + ' km!', {
+        new Notification(`Você já andou ${quantidade} km!`, {
             body: 'Continue assim, você está indo muito bem!',
             icon: '/images/icon.png',
             badge: '/images/badge.png'
@@ -154,59 +117,58 @@ function notificarCaminhada(quantidade) {
     }
 }
 
-// Exemplo de uso: chame esta função quando atingir 1 km
-notificarCaminhada(1);
-
-// Função para falar mensagens com o SpeechSynthesis
+// Fala uma mensagem usando síntese de voz
 function falarMensagem(mensagem) {
     if ('speechSynthesis' in window && audioAtivado) {
-      window.speechSynthesis.cancel(); // força limpar o que estava travado
-      const utterance = new SpeechSynthesisUtterance(mensagem);
-      window.speechSynthesis.speak(utterance);
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(new SpeechSynthesisUtterance(mensagem));
     }
-  }
+}
 
+// Inicia a caminhada: reinicia dados e ativa rastreamento
 function iniciarCaminhada() {
   console.log("Iniciando caminhada...");
-
-  // Reseta as variáveis e atualiza a interface
+  // Reset de variáveis
   startTime = Date.now();
   totalDistance = 0;
   previousPosition = null;
   distanceData = [];
   timeData = [];
   pathCoordinates = [];
-  tempoDecorridoElement.textContent = '00:00:00';
-  distanciaPercorridaElement.textContent = '0.00 km';
-  ritmoAtualElement.textContent = '0:00';
-  feedbackElement.textContent = '';
   ritmoInicial = null;
   paradoDesde = null;
   ritmoInicialRegistrado = false;
   ritmoDiminuiuAvisado = false;
 
+  // Zera visualmente a interface
+  tempoDecorridoElement.textContent = '00:00:00';
+  distanciaPercorridaElement.textContent = '0.00 km';
+  ritmoAtualElement.textContent = '0:00';
+  feedbackElement.textContent = '';
+
   if (audioAtivado) falarMensagem("Caminhada iniciada!");
 
-  // Não chama mais a inicialização do mapa (não duplicar)
-  // Apenas recentra o mapa no início da caminhada com a localização atual
+  // Centraliza mapa no local atual
   navigator.geolocation.getCurrentPosition(pos => {
     mapa.setView([pos.coords.latitude, pos.coords.longitude], 15);
   });
 
-  // Começa a assistir a posição do usuário para atualizar a localização
+  // Começa a rastrear a posição
   watchId = navigator.geolocation.watchPosition(atualizarLocalizacao, tratarErro, {
     enableHighAccuracy: true,
     timeout: 5000,
     maximumAge: 0
   });
 
-  // Inicia o temporizador para a caminhada
+  // Inicia o cronômetro
   timerInterval = setInterval(atualizarTempo, 1000);
+
+  // Atualiza estado dos botões
   iniciarCaminhadaBotao.disabled = true;
   pararCaminhadaBotao.disabled = false;
 }
 
-
+// Atualiza o gráfico com a distância ao longo do tempo
 function atualizarGrafico(timestamp) {
     distanceData.push(totalDistance);
     timeData.push(timestamp);
@@ -215,10 +177,7 @@ function atualizarGrafico(timestamp) {
     meuGrafico.update();
 }
 
-// Resto do código de controle da caminhada continua igual...
-
-// Lembre-se de incluir todas as outras funções do código conforme estavam (atualização de localização, cálculo de distância, etc.)
-
+// Finaliza a caminhada e salva no backend
 function pararCaminhada() {
     if (watchId) {
         navigator.geolocation.clearWatch(watchId);
@@ -239,22 +198,22 @@ function pararCaminhada() {
                 tempo,
                 ritmo
             })
-        })
-        .then(res => {
-  if (res.ok) {
-    feedbackElement.textContent = "✅ Caminhada salva no histórico!";
-    carregarHistorico();
-    salvarImagemDoMapa();
-  } else {
-    feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
-  }
-});
+        }).then(res => {
+            if (res.ok) {
+                feedbackElement.textContent = "✅ Caminhada salva no histórico!";
+                carregarHistorico();
+                salvarImagemDoMapa();
+            } else {
+                feedbackElement.textContent = "❌ Erro ao salvar caminhada.";
+            }
+        });
 
         if (audioAtivado) falarMensagem(`Caminhada finalizada. Distância total percorrida: ${distancia} quilômetros.`);
         desenharRotaNoMapa();
     }
 }
 
+// Atualiza localização do usuário e calcula distância, ritmo e feedback
 function atualizarLocalizacao(position) {
     const { latitude, longitude } = position.coords;
     const timestamp = position.timestamp;
@@ -266,15 +225,11 @@ function atualizarLocalizacao(position) {
         primeiraCoordenadaRecebida = true;
     }
 
-    let velocidadeAtual = 0;
-    if (position.coords.speed !== null) {
-        velocidadeAtual = position.coords.speed * 3.6;
-    }
-
+    // Detecta se o usuário está parado por muito tempo
+    const velocidadeAtual = position.coords.speed !== null ? position.coords.speed * 3.6 : 0;
     if (velocidadeAtual < LIMIAR_VELOCIDADE) {
-        if (paradoDesde === null) {
-            paradoDesde = Date.now();
-        } else if (Date.now() - paradoDesde > TEMPO_LIMITE_PARADO) {
+        if (!paradoDesde) paradoDesde = Date.now();
+        else if (Date.now() - paradoDesde > TEMPO_LIMITE_PARADO) {
             falarMensagem("Você está parado há algum tempo. Tudo bem?");
             paradoDesde = null;
         }
@@ -282,33 +237,31 @@ function atualizarLocalizacao(position) {
         paradoDesde = null;
     }
 
+    // Calcula distância percorrida desde o último ponto
     if (previousPosition) {
-        const distance = calcularDistancia(previousPosition.latitude, previousPosition.longitude, latitude, longitude);
-        totalDistance += distance;
+        const distancia = calcularDistancia(previousPosition.latitude, previousPosition.longitude, latitude, longitude);
+        totalDistance += distancia;
 
         const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
-        let ritmo = '0:00';
-        if (totalDistance > 0) {
-            const segundosPorKm = elapsedTime / totalDistance;
-            const minutos = Math.floor(segundosPorKm / 60);
-            const segundos = Math.floor(segundosPorKm % 60);
-            ritmo = `${minutos}:${String(segundos).padStart(2, '0')}`;
-        }
-
-        ritmoAtualElement.textContent = ritmo;
+        const segundosPorKm = totalDistance > 0 ? elapsedTime / totalDistance : 0;
+        const minutos = Math.floor(segundosPorKm / 60);
+        const segundos = Math.floor(segundosPorKm % 60);
+        ritmoAtualElement.textContent = `${minutos}:${String(segundos).padStart(2, '0')}`;
     }
 
     previousPosition = { latitude, longitude };
-    distanciaPercorridaElement.textContent = totalDistance.toFixed(2) + ' km';
+    distanciaPercorridaElement.textContent = `${totalDistance.toFixed(2)} km`;
 
     atualizarGrafico(timestamp);
     atualizarMapaComNovaCoordenada(latitude, longitude);
 }
 
+// Lida com erro de geolocalização
 function tratarErro(error) {
     console.warn('Erro ao obter localização:', error.message);
 }
 
+// Atualiza o tempo decorrido
 function atualizarTempo() {
     const elapsed = Math.floor((Date.now() - startTime) / 1000);
     const h = Math.floor(elapsed / 3600);
@@ -317,28 +270,31 @@ function atualizarTempo() {
     tempoDecorridoElement.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+// Calcula distância entre dois pontos (fórmula de Haversine)
 function calcularDistancia(lat1, lon1, lat2, lon2) {
     const R = 6371;
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.sin(dLon / 2) ** 2;
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+              Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
 function deg2rad(deg) {
     return deg * (Math.PI / 180);
 }
 
+// Inicializa o gráfico da caminhada
 function inicializarGrafico() {
     if (meuGrafico) meuGrafico.destroy();
     meuGrafico = new Chart(graficoCanvas, {
         type: 'line',
         data: {
-            labels: Array.from({ length: distanceData.length }, (_, i) => i + 1),
+            labels: [],
             datasets: [{
                 label: 'Distância (km)',
-                data: distanceData,
+                data: [],
                 borderColor: '#bb86fc',
                 backgroundColor: 'rgba(187, 134, 252, 0.2)',
                 fill: true,
@@ -347,29 +303,24 @@ function inicializarGrafico() {
         },
         options: {
             scales: {
-                x: { title: { display: true, text: 'Número de Leituras', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }},
-                y: { title: { display: true, text: 'Distância (km)', color: '#e0e0e0' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }}
+                x: { title: { display: true, text: 'Leituras' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }},
+                y: { title: { display: true, text: 'Distância (km)' }, ticks: { color: '#9e9e9e' }, grid: { color: '#373737' }}
             },
             plugins: { legend: { labels: { color: '#e0e0e0' } } }
         }
     });
 }
 
+// Inicializa o mapa Leaflet
 function inicializarMapa(lat, lon) {
-  // Se já existe, não faz nada
   if (mapa) return;
 
-  // Cria o mapa só na primeira vez
   mapa = L.map('mapa-container').setView([lat, lon], 15);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
-    crossOrigin: true
-  }).addTo(mapa);
-
-  // Inicializa a polyline vazia
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(mapa);
   polyline = L.polyline([], { color: 'blue' }).addTo(mapa);
 }
 
+// Desenha toda a rota percorrida ao final
 function desenharRotaNoMapa() {
     if (mapa && pathCoordinates.length > 1) {
         if (polyline) mapa.removeLayer(polyline);
@@ -378,6 +329,7 @@ function desenharRotaNoMapa() {
     }
 }
 
+// Adiciona nova coordenada à rota
 function atualizarMapaComNovaCoordenada(lat, lon) {
     if (mapa) {
         if (!polyline) {
@@ -388,14 +340,13 @@ function atualizarMapaComNovaCoordenada(lat, lon) {
     }
 }
 
-// Função para carregar o histórico de caminhadas
+// Carrega histórico salvo no backend e exibe na interface
 function carregarHistorico() {
     fetch('/api/historico')
-      .then(response => response.json())
+      .then(res => res.json())
       .then(historico => {
         const lista = document.getElementById('lista-historico');
-        lista.innerHTML = ''; // Limpa a lista atual
-  
+        lista.innerHTML = '';
         historico.forEach(item => {
           const li = document.createElement('li');
           li.innerHTML = `
@@ -409,62 +360,45 @@ function carregarHistorico() {
           lista.appendChild(li);
         });
       })
-      .catch(error => {
-        console.error('Erro ao carregar histórico:', error);
-      });
-  }
-  
-  // Função para excluir uma caminhada pelo ID
-  function excluirCaminhada(id) {
-    if (confirm('Tem certeza que deseja excluir esta caminhada?')) {
-      fetch(`/api/historico/${id}`, {
-        method: 'DELETE'
-      })
-      .then(response => {
-        if (response.ok) {
-          alert('Caminhada excluída com sucesso!');
-          carregarHistorico(); // Recarrega a lista depois da exclusão
-        } else {
-          response.json().then(data => {
-            alert('Erro ao excluir: ' + (data.error || 'Erro desconhecido.'));
-          });
-        }
-      })
-      .catch(error => {
-        console.error('Erro ao excluir caminhada:', error);
-      });
-    }
-  }
-  
-  // Carregar o histórico assim que a página abrir
-  carregarHistorico();
+      .catch(error => console.error('Erro ao carregar histórico:', error));
+}
 
-// ✅ Botão de som corrigido
+// Exclui caminhada específica do histórico
+function excluirCaminhada(id) {
+    if (confirm('Tem certeza que deseja excluir esta caminhada?')) {
+        fetch(`/api/historico/${id}`, { method: 'DELETE' })
+            .then(res => {
+                if (res.ok) carregarHistorico();
+                else res.json().then(data => alert('Erro: ' + (data.error || 'desconhecido')));
+            }).catch(err => console.error('Erro ao excluir:', err));
+    }
+}
+
+// Botão de ativar/desativar áudio
 toggleAudioButton.addEventListener('click', () => {
     audioAtivado = !audioAtivado;
     toggleAudioButton.textContent = audioAtivado ? '🔊' : '🔇';
 });
 
-iniciarCaminhadaBotao.addEventListener('click', () => {
-    console.log("Botão Iniciar Caminhada foi clicado!");
-    iniciarCaminhada();
-});
-
+// Inicia caminhada ao clicar no botão
+iniciarCaminhadaBotao.addEventListener('click', iniciarCaminhada);
 pararCaminhadaBotao.addEventListener('click', pararCaminhada);
+
+// Carrega histórico ao carregar a página
 window.addEventListener('DOMContentLoaded', carregarHistorico);
 
-
+// Salva imagem do mapa como PNG
 function salvarImagemDoMapa() {
   const mapaEl = document.getElementById("mapa-container");
   html2canvas(mapaEl, { useCORS: true }).then(canvas => {
     const imagem = canvas.toDataURL("image/png");
-
     const link = document.createElement('a');
     link.href = imagem;
     link.download = `trajeto-${new Date().toISOString().slice(0,19).replace(/[:T]/g, '-')}.png`;
     link.click();
   });
 }
+
 window.addEventListener('load', () => {
  inicializarGrafico(); // gráfico vazio
   inicializarMapa(-20.0, -45.0); // posição inicial genérica
