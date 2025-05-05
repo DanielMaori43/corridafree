@@ -8,7 +8,7 @@ const mapaContainer = document.getElementById('mapa-container');
 const ritmoAtualElement = document.getElementById('ritmo-atual');
 const feedbackElement = document.getElementById('feedback-mensagem');
 const toggleAudioButton = document.getElementById('toggle-audio');
-const cron = require("node-cron"); // (Parece não utilizado aqui, pode ser removido)
+// const cron = require("node-cron"); // (Parece não utilizado aqui, pode ser removido)
 
 // Variáveis de controle da caminhada
 let startTime;
