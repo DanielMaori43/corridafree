@@ -7,6 +7,7 @@ const mapaContainer = document.getElementById('mapa-container');
 const ritmoAtualElement = document.getElementById('ritmo-atual');
 const feedbackElement = document.getElementById('feedback-mensagem');
 const toggleAudioButton = document.getElementById('toggle-audio');
+const cron = require("node-cron");
 
 let startTime;
 let previousPosition = null;
@@ -474,4 +475,9 @@ window.addEventListener('load', () => {
     mapa.setView([latitude, longitude], 15);
   });
 });
+cron.schedule('*/14 * * * *', async () =>{
+    const res = await fetch(url);
+    const status =- res.status; 
+}
+  )
 
