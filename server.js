@@ -1,35 +1,48 @@
 // Importação dos módulos necessários
-const express = require('express');          // Framework para criar servidor HTTP
-const sqlite3 = require('sqlite3').verbose(); // Driver para conectar e manipular banco SQLite
-const path = require('path');                 // Utilitário para lidar com caminhos de arquivos
-const webpush = require('web-push');           // Biblioteca para envio de notificações Push Web
+const express = require('express');              // Framework para criar o servidor web
+const sqlite3 = require('sqlite3').verbose();    // Biblioteca para interagir com o banco SQLite
+const path = require('path');                    // Utilitário para manipular caminhos de arquivos
+const webpush = require('web-push');             // Biblioteca para envio de notificações push
 
-const app = express();                        // Criação da aplicação Express
-const PORT = process.env.PORT || 3000;         // Porta do servidor
-const DB_PATH = path.join(__dirname, 'caminhadas.db'); // Caminho do banco de dados
+// Inicialização da aplicação Express
+const app = express();
+const PORT = process.env.PORT || 3000;           // Define a porta (por variável de ambiente ou 3000 padrão)
+const DB_PATH = path.join(__dirname, 'caminhadas.db'); // Caminho para o arquivo do banco de dados
 
-// Configuração das chaves VAPID (Web Push Notifications)
-const publicVapidKey = 'BCa1XcQTdyOQU_QKNlHKjo7cYnGQBKc8h8u5DSRKrYEB2iYP2Bq2vhlddz-TntdCpu7oJfoXUR_2KgWsSrb8tm8';    // Substituir pela sua chave pública
-const privateVapidKey = 'v9HMSf_LVQmRTe3-dalykeSf4CYDsggFKt3phADQxKQ';   // Substituir pela sua chave privada
+// Módulo para tarefas agendadas (cron)
+const cron = require("node-cron");
+
+// Tarefa agendada para rodar a cada 14 minutos
+cron.schedule('*/14 * * * *', async () => {
+    const res = await fetch(url);                // Faz uma requisição à URL (URL precisa estar definida)
+    const status = res.status;                   // Salva o status da resposta
+    // OBS: status =- res.status está incorreto, deveria ser apenas = res.status
+});
+
+// Chaves públicas e privadas para envio de notificações push (substituir pelas suas em produção)
+const publicVapidKey = 'BCa1XcQTdyOQU_QKNlHKjo7cYnGQBKc8h8u5DSRKrYEB2iYP2Bq2vhlddz-TntdCpu7oJfoXUR_2KgWsSrb8tm8';
+const privateVapidKey = 'v9HMSf_LVQmRTe3-dalykeSf4CYDsggFKt3phADQxKQ';
+
+// Configura as chaves VAPID para autenticação do serviço de notificação push
 webpush.setVapidDetails(
-  'mailto:projetositeviagens@gmail.com',       // Email de contato
+  'mailto:projetositeviagens@gmail.com',   // Email de contato
   publicVapidKey,
   privateVapidKey
 );
 
-// Middleware para impedir que respostas sejam armazenadas em cache
+// Middleware para impedir cache (força sempre a requisição mais recente)
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
   next();
 });
 
-// Middleware para interpretar o corpo das requisições como JSON
+// Middleware para interpretar JSON no corpo das requisições
 app.use(express.json());
 
-// Middleware para servir arquivos estáticos da pasta 'views'
+// Middleware para servir arquivos estáticos da pasta "views"
 app.use(express.static(path.join(__dirname, 'views')));
 
-// Conexão e criação das tabelas do banco de dados
+// Conexão com o banco de dados SQLite
 const db = new sqlite3.Database(DB_PATH, err => {
   if (err) {
     console.error('Erro ao abrir banco de dados', err);
@@ -37,6 +50,7 @@ const db = new sqlite3.Database(DB_PATH, err => {
   }
   console.log('Conectado ao SQLite em', DB_PATH);
 
+  // Criação das tabelas, se não existirem
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS historico_caminhada (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -60,7 +74,7 @@ const db = new sqlite3.Database(DB_PATH, err => {
   });
 });
 
-// Rota para receber inscrição de push notification
+// Rota para salvar a inscrição do usuário para notificações push
 app.post('/api/subscribe', (req, res) => {
   const subscription = req.body;
 
@@ -77,7 +91,7 @@ app.post('/api/subscribe', (req, res) => {
   });
 });
 
-// Rota para salvar dados de uma caminhada
+// Rota para salvar uma nova caminhada no banco de dados
 app.post('/api/historico', (req, res) => {
   const { data, tempo, distancia, ritmo, subscription } = req.body;
 
@@ -92,7 +106,7 @@ app.post('/api/historico', (req, res) => {
       return res.status(500).json({ error: 'Falha ao salvar caminhada.' });
     }
 
-    // Se houver uma inscrição, envia notificação
+    // Envia notificação push se o cliente estiver inscrito
     if (subscription) {
       const payload = JSON.stringify({
         title: "Boa caminhada!",
@@ -105,12 +119,12 @@ app.post('/api/historico', (req, res) => {
 
     res.status(201).json({
       message: 'Caminhada salva com sucesso!',
-      id: this.lastID // ID da caminhada recém-criada
+      id: this.lastID // Retorna o ID da caminhada inserida
     });
   });
 });
 
-// Rota para listar todas as caminhadas registradas
+// Rota para listar todo o histórico de caminhadas
 app.get('/api/historico', (req, res) => {
   const selectSQL = `
     SELECT id, data_inicio AS data, tempo, distancia, ritmo
@@ -123,11 +137,11 @@ app.get('/api/historico', (req, res) => {
       console.error('Erro ao buscar histórico:', err);
       return res.status(500).json({ error: 'Falha ao carregar histórico.' });
     }
-    res.json(rows);
+    res.json(rows); // Retorna lista de caminhadas
   });
 });
 
-// >>> NOVA FUNÇÃO: Excluir uma caminhada pelo ID
+// Rota para deletar uma caminhada específica pelo ID
 app.delete('/api/historico/:id', (req, res) => {
   const { id } = req.params;
 
@@ -148,7 +162,7 @@ app.delete('/api/historico/:id', (req, res) => {
   });
 });
 
-// Inicializa o servidor
+// Inicializa o servidor na porta definida
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });
