@@ -120,8 +120,9 @@ function notificarCaminhada(quantidade) {
 // Fala uma mensagem usando síntese de voz
 function falarMensagem(mensagem) {
     if ('speechSynthesis' in window && audioAtivado) {
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(new SpeechSynthesisUtterance(mensagem));
+        console.log("Falando:", mensagem);  // <== Adicione isto
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance(mensagem));
     }
 }
 
