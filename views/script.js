@@ -410,4 +410,13 @@ window.addEventListener('load', () => {
     mapa.setView([latitude, longitude], 15);
   });
 });
+setInterval(async () => {
+  try {
+    const res = await fetch('/sua-url-aqui'); // substitua pela URL real
+    const status = res.status;
+    console.log('Status:', status);
+  } catch (err) {
+    console.error('Erro ao buscar status:', err);
+  }
+}, 14 * 60 * 1000); // 14 minutos em milissegundos
 
