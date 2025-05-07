@@ -410,9 +410,4 @@ window.addEventListener('load', () => {
     mapa.setView([latitude, longitude], 15);
   });
 });
-cron.schedule('*/14 * * * *', async () =>{
-    const res = await fetch(url);
-    const status =- res.status; 
-}
-  )
 
